@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en" xml:lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Activate Your Account</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+      }
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .header {
+        background-color: #f4f4f4;
+        padding: 10px;
+        text-align: center;
+      }
+      .content {
+        padding: 20px 0;
+      }
+      .footer {
+        background-color: #f4f4f4;
+        padding: 10px;
+        text-align: center;
+        font-size: 12px;
+      }
+      .btn {
+        background-color: #007bff;
+        color: white;
+        padding: 10px 15px;
+        text-decoration: none;
+        border-radius: 5px;
+        display: inline-block;
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h2>Welcome to FieldTrack</h2>
+      </div>
+      <div class="content">
+        <p>Hi <b><%= firstName %> <%= lastName %></b>,</p>
+
+        <p>
+          We’re excited to let you know that your organization
+          <b><%= organizationName %></b>
+          has been successfully registered on the FieldTrack platform.
+        </p>
+
+        <p>
+          To activate your admin account and get started, please click the
+          button below:
+        </p>
+
+        <a class="btn" href="<%= activateUrl %>">Activate My Account</a>
+
+        <p>If you did not expect this email, you can safely ignore it.</p>
+      </div>
+      <div class="footer">
+        <p>
+          &copy; <%= new Date().getFullYear() %> FieldTrack. All rights
+          reserved.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

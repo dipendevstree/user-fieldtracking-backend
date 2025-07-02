@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en" xml:lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Welcome to FieldTrack</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+      }
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .header {
+        background-color: #f4f4f4;
+        padding: 10px;
+        text-align: center;
+      }
+      .content {
+        padding: 20px 0;
+      }
+      .footer {
+        background-color: #f4f4f4;
+        padding: 10px;
+        text-align: center;
+        font-size: 12px;
+      }
+      .btn {
+        background-color: #28a745;
+        color: white;
+        padding: 10px 15px;
+        text-decoration: none;
+        border-radius: 5px;
+        display: inline-block;
+        margin-top: 10px;
+      }
+      .info-box {
+        background-color: #f9f9f9;
+        border-left: 4px solid #007bff;
+        padding: 10px;
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h2>Welcome to FieldTrack</h2>
+      </div>
+      <div class="content">
+        <p>Hi <b><%= firstName %> <%= lastName %></b>,</p>
+
+        <p>
+          Your account has been successfully created under the organization
+          <b><%= organizationName %></b>.
+        </p>
+
+        <% if (isWebUser) { %>
+          <!-- Web User Content -->
+          <div class="info-box">
+            <p><strong>Email:</strong> <%= userEmail %></p>
+            <p><strong>Temporary Password:</strong> <%= userPassword %></p>
+          </div>
+
+          <p>You can log in using the button below:</p>
+          <a class="btn" href="<%= loginUrl %>">Login to FieldTrack</a>
+
+          <p>We recommend changing your password after your first login.</p>
+        <% } else { %>
+          <!-- Mobile User Content -->
+          <div class="info-box">
+            <p><strong>Phone Number:</strong> <%= phoneNumber %></p>
+          </div>
+
+          <p>You can log in directly using your phone number in the mobile app:</p>
+          <a class="btn" href="<%= loginUrl %>">Open FieldTrack App</a>
+          <p>Enjoy live tracking and easy access on your mobile.</p>
+        <% } %>
+      </div>
+
+      <div class="footer">
+        <p>
+          &copy; <%= new Date().getFullYear() %> FieldTrack. All rights reserved.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

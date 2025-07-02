@@ -1,0 +1,602 @@
+in Below  organizationMenu module crud create same as userTracking crud
+
+here is create-organizationMenu.dto.ts create same create-userTracking.dto.ts
+
+import { ApiProperty } from "@nestjs/swagger";
+import { IsNotEmpty, IsString, IsBoolean, IsOptional } from "class-validator";
+
+export class CreateOrganizationMenuDto {
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty()
+  menuName: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty()
+  menuKey: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty()
+  organizationId: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty()
+  masterMenuId: string;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty()
+  parentMenuId: string;
+
+  @IsBoolean()
+  @IsNotEmpty()
+  @ApiProperty()
+  isActive: boolean;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty()
+  createdBy: string;
+}
+
+
+here is update-organizationMenu.dto.ts create same as update-userTracking.dto.ts
+
+import { ApiProperty } from "@nestjs/swagger";
+import { IsNotEmpty, IsString, IsBoolean } from "class-validator";
+
+export class UpdateOrganizationMenuDto {
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty()
+  menuName: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty()
+  menuKey: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty()
+  organizationId: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty()
+  masterMenuId: string;
+
+  @IsBoolean()
+  @IsNotEmpty()
+  @ApiProperty()
+  isActive: boolean;
+}
+
+
+here is organizationMenu.controller.ts create same as userTracking.controller.ts
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  Req,
+  Res,
+  UseGuards,
+} from "@nestjs/common";
+import { OrganizationMenuService } from "./organizationMenu.service";
+import { Request, Response } from "express";
+import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { ApiBearerAuth, ApiQuery, ApiTags } from "@nestjs/swagger";
+import { RolesGuard } from "../auth/role-auth-guard";
+import { commonResponse } from "helper";
+import { CreateOrganizationMenuDto } from "./dtos/create-organizationMenu.dto";
+import { UpdateOrganizationMenuDto } from "./dtos/update-organizationMenu.dto";
+
+@Controller("organizationMenu")
+@ApiBearerAuth()
+@ApiTags("OrganizationMenu")
+export class OrganizationMenuController {
+  constructor(
+    private readonly organizationMenuService: OrganizationMenuService
+  ) {}
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Post("/create")
+  async create(
+    @Body() createDto: CreateOrganizationMenuDto,
+    @Req() req: Request,
+    @Res() res: Response
+  ) {
+    try {
+      let schemaName = req.user.schemaName;
+      const checkExist = await this.organizationMenuService.isExist(
+        {
+          menuKey: createDto.menuKey,
+          organizationId: createDto.organizationId,
+        },
+        schemaName
+      );
+      if (checkExist) {
+        return commonResponse.error(
+          "en",
+          res,
+          "ORGANIZATION_MENU_EXISTS",
+          409,
+          {}
+        );
+      }
+
+      createDto["createdBy"] = req?.user?.id;
+      const result = await this.organizationMenuService.create(
+        createDto,
+        schemaName
+      );
+      return commonResponse.success(
+        "en",
+        res,
+        "ORGANIZATION_MENU_CREATED",
+        201,
+        result
+      );
+    } catch (error) {
+      return commonResponse.error(
+        "en",
+        res,
+        "DEFAULT_INTERNAL_SERVER_ERROR",
+        500,
+        { message: error.message }
+      );
+    }
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get("/list")
+  @ApiQuery({
+    name: "sort",
+    required: false,
+    type: String,
+    example: "asc",
+    description: "Sort order (asc/desc)",
+  })
+  @ApiQuery({
+    name: "limit",
+    required: false,
+    type: Number,
+    example: 10,
+    description: "Limit the number of results",
+  })
+  @ApiQuery({
+    name: "page",
+    required: false,
+    type: Number,
+    example: 1,
+    description: "Page number for pagination",
+  })
+  async list(@Req() req: Request, @Res() res: Response) {
+    try {
+      let schemaName = req.user.schemaName;
+      req.query["organizationId"] = req.user.organizationID;
+      const data = await this.organizationMenuService.getAll(
+        req.query,
+        schemaName
+      );
+      return commonResponse.success(
+        "en",
+        res,
+        "ORGANIZATION_MENU_LIST",
+        200,
+        data
+      );
+    } catch (error) {
+      return commonResponse.error(
+        "en",
+        res,
+        "DEFAULT_INTERNAL_SERVER_ERROR",
+        500,
+        { message: error.message }
+      );
+    }
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Get(":id")
+  async getById(
+    @Param("id") id: string,
+    @Req() req: Request,
+    @Res() res: Response
+  ) {
+    try {
+      let schemaName = req.user.schemaName;
+      const data = await this.organizationMenuService.getById(id, schemaName);
+      if (data) {
+        return commonResponse.success(
+          "en",
+          res,
+          "ORGANIZATION_MENU_DETAIL",
+          200,
+          data
+        );
+      } else {
+        return commonResponse.error("en", res, "DATA_NOT_FOUND", 404, {});
+      }
+    } catch (error) {
+      return commonResponse.error(
+        "en",
+        res,
+        "DEFAULT_INTERNAL_SERVER_ERROR",
+        500,
+        { message: error.message }
+      );
+    }
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Patch("patch/:id")
+  async update(
+    @Param("id") id: string,
+    @Body() updateDto: UpdateOrganizationMenuDto,
+    @Req() req: Request,
+    @Res() res: Response
+  ) {
+    try {
+      let schemaName = req.user.schemaName;
+      const record = await this.organizationMenuService.getById(id, schemaName);
+      if (record) {
+        updateDto["updatedBy"] = req?.user?.id;
+        Object.assign(record, updateDto);
+        const updated = await this.organizationMenuService.update(
+          record,
+          schemaName
+        );
+        return commonResponse.success(
+          "en",
+          res,
+          "ORGANIZATION_MENU_UPDATED",
+          200,
+          updated
+        );
+      } else {
+        return commonResponse.error("en", res, "DATA_NOT_FOUND", 404, {});
+      }
+    } catch (error) {
+      return commonResponse.error(
+        "en",
+        res,
+        "DEFAULT_INTERNAL_SERVER_ERROR",
+        500,
+        { message: error.message }
+      );
+    }
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Delete("delete/:id")
+  async delete(
+    @Param("id") id: string,
+    @Req() req: Request,
+    @Res() res: Response
+  ) {
+    try {
+      let schemaName = req.user.schemaName;
+      const deleted = await this.organizationMenuService.delete(id, schemaName);
+      if (deleted) {
+        return commonResponse.success(
+          "en",
+          res,
+          "ORGANIZATION_MENU_DELETED",
+          200,
+          {}
+        );
+      } else {
+        return commonResponse.error("en", res, "DATA_NOT_FOUND", 404, {});
+      }
+    } catch (error) {
+      return commonResponse.error(
+        "en",
+        res,
+        "DEFAULT_INTERNAL_SERVER_ERROR",
+        500,
+        { message: error.message }
+      );
+    }
+  }
+}
+
+
+here is organizationMenu.entity.ts create same as userTracking.entity.ts
+
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+  DeleteDateColumn,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
+} from "typeorm";
+import { Organization } from "../organization/organization.entity";
+import { User } from "../users/user.entity";
+import { Menu } from "../menu/menu.entity";
+import { Permission } from "../userTracking/userTracking.entity";
+
+@Entity("organizationMenu")
+export class OrganizationMenu {
+  @PrimaryGeneratedColumn("uuid")
+  organizationMenuId: string;
+
+  @Column()
+  menuName: string;
+
+  @Column()
+  menuKey: string;
+
+  @Column({ default: null, nullable: true })
+  parentMenuId: string;
+
+  @Column()
+  organizationId: string;
+
+  @Column()
+  masterMenuId: string;
+
+  @Column()
+  createdBy: string;
+
+  @Column({ default: null, nullable: true })
+  updatedBy: string;
+
+  @Column({ type: "boolean" })
+  isActive: boolean;
+
+  @DeleteDateColumn({ name: "deletedDate", nullable: true })
+  deletedDate?: Date;
+
+  @CreateDateColumn({ name: "createdDate" })
+  createdDate: Date;
+
+  @UpdateDateColumn({ name: "modifiedDate" })
+  modifiedDate: Date;
+
+  @ManyToOne(
+    () => Organization,
+    (organization) => organization.organizationMenu
+  )
+  @JoinColumn({ name: "organizationId" })
+  organization: Organization;
+
+  @ManyToOne(() => User, (user) => user.organizationMenu)
+  @JoinColumn({ name: "createdBy" })
+  createdByData: User;
+
+  @ManyToOne(() => User, (user) => user.organizationMenuData)
+  @JoinColumn({ name: "updatedBy" })
+  updatedByData: User;
+
+  @ManyToOne(() => Menu, (menu) => menu.orgMenu)
+  @JoinColumn({ name: "masterMenuId" })
+  masterMenu: Menu;
+
+  @OneToMany(
+    () => Permission,
+    (organizationMenu) => organizationMenu.organizationMenu
+  )
+  permissions: Permission[];
+}
+
+here is organizationMenu.module.ts create same as userTracking.module.ts
+import { Module, forwardRef } from "@nestjs/common";
+import { TypeOrmModule } from "@nestjs/typeorm";
+import { OrganizationMenu } from "./organizationMenu.entity";
+import { AuthModule } from "../auth/auth.module";
+import { JwtService } from "@nestjs/jwt";
+import { OrganizationMenuService } from "./organizationMenu.service";
+import { OrganizationMenuController } from "./organizationMenu.controller";
+
+@Module({
+  imports: [
+    TypeOrmModule.forFeature([OrganizationMenu]),
+    forwardRef(() => AuthModule),
+  ],
+  providers: [OrganizationMenuService, JwtService],
+  controllers: [OrganizationMenuController],
+  exports: [OrganizationMenuService],
+})
+export class OrganizationMenuModule {}
+
+
+here is organizationMenu.service.ts create same as userTracking.service.ts
+
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { DeepPartial } from "typeorm";
+import { OrganizationMenu } from "./organizationMenu.entity";
+import { getRepositoryForCompany } from "src/middleware/dynamic-schema.service";
+import { CreateOrganizationMenuDto } from "./dtos/create-organizationMenu.dto";
+import { UpdateOrganizationMenuDto } from "./dtos/update-organizationMenu.dto";
+
+@Injectable()
+export class OrganizationMenuService {
+  async isExist(
+    query: any,
+    schema: string
+  ): Promise<OrganizationMenu | undefined> {
+    const { repo } = await getRepositoryForCompany<OrganizationMenu>(
+      OrganizationMenu,
+      schema
+    );
+    return await repo.findOne({ where: query });
+  }
+
+  async create(
+    createDto: CreateOrganizationMenuDto,
+    schema: string
+  ): Promise<OrganizationMenu> {
+    try {
+      const { repo } = await getRepositoryForCompany<OrganizationMenu>(
+        OrganizationMenu,
+        schema
+      );
+      const entity = repo.create(createDto as DeepPartial<OrganizationMenu>);
+      return await repo.save(entity);
+    } catch (error) {
+      console.log("create error", error);
+      throw error;
+    }
+  }
+
+  async getAll(
+    reqQuery: any,
+    schema: string
+  ): Promise<{
+    totalCount: number;
+    totalPages: number;
+    currentPage: number;
+    list: OrganizationMenu[];
+  }> {
+    const { repo } = await getRepositoryForCompany<OrganizationMenu>(
+      OrganizationMenu,
+      schema
+    );
+    const hasPagination = reqQuery.page && reqQuery.limit;
+    const page = hasPagination ? parseInt(reqQuery.page, 10) : 1;
+    const limit = hasPagination ? parseInt(reqQuery.limit, 10) : 10;
+    const offset = (page - 1) * limit;
+
+    const sortField = reqQuery.sortField ?? "createdDate";
+    const sortDirection =
+      reqQuery.sort?.toLowerCase() === "desc" ? "DESC" : "ASC";
+
+    let items: OrganizationMenu[];
+    let totalCount: number;
+    let whereCondition: Partial<OrganizationMenu> = { isActive: true };
+
+    if (reqQuery.organizationId) {
+      whereCondition = {
+        ...whereCondition,
+        organizationId: reqQuery.organizationId,
+      };
+    }
+
+    if (hasPagination) {
+      [items, totalCount] = await repo.findAndCount({
+        where: whereCondition,
+        order: { [sortField]: sortDirection },
+        skip: offset,
+        take: limit,
+      });
+    } else {
+      items = await repo.find({
+        where: whereCondition,
+        order: { [sortField]: sortDirection },
+      });
+      totalCount = items.length;
+    }
+
+    const totalPages = hasPagination ? Math.ceil(totalCount / limit) : 1;
+
+    return {
+      totalCount,
+      totalPages,
+      currentPage: page,
+      list: items,
+    };
+  }
+
+  async getById(id: string, schema: string): Promise<OrganizationMenu> {
+    const { repo } = await getRepositoryForCompany<OrganizationMenu>(
+      OrganizationMenu,
+      schema
+    );
+    const record = await repo.findOne({
+      where: { organizationMenuId: id, isActive: true },
+    });
+    if (!record) {
+      throw new NotFoundException(`OrganizationMenu with ID ${id} not found`);
+    }
+    return record;
+  }
+
+  async updateOrganizationMenu(
+    id: string,
+    updateDto: UpdateOrganizationMenuDto,
+    schema: string
+  ): Promise<OrganizationMenu> {
+    const { repo } = await getRepositoryForCompany<OrganizationMenu>(
+      OrganizationMenu,
+      schema
+    );
+    const record = await this.getById(id, schema);
+    Object.assign(record, updateDto);
+    return await repo.save(record);
+  }
+
+  async getDetails(
+    query: any,
+    schema: string
+  ): Promise<OrganizationMenu | undefined> {
+    const repository = (
+      await getRepositoryForCompany<OrganizationMenu>(OrganizationMenu, schema)
+    ).repo;
+
+    const found = await repository.findOne({
+      where: { ...query },
+    });
+
+    return found ?? undefined;
+  }
+
+  async update(
+    payload: OrganizationMenu,
+    schema: string
+  ): Promise<OrganizationMenu> {
+    const { repo } = await getRepositoryForCompany<OrganizationMenu>(
+      OrganizationMenu,
+      schema
+    );
+    return await repo.save(payload);
+  }
+
+  async delete(id: string, schema: string): Promise<OrganizationMenu> {
+    const { repo } = await getRepositoryForCompany<OrganizationMenu>(
+      OrganizationMenu,
+      schema
+    );
+    const record = await this.getById(id, schema);
+    return await repo.softRemove(record);
+  }
+}
+
+
+note: not give a comments
+Create similar module name of userTracking
+field name of 
+
+   user_id: {
+      type: string,
+      
+      required: true,
+    },
+lat : : {
+      type: string,
+      
+      required: true,
+    },
+    long : : {
+      type: string,
+      
+      required: true,
+    },
+{ timestamps: { createdAt: "created_at"" } }
+
+
+
+
+
+
