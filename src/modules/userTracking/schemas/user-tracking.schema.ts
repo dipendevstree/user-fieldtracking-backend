@@ -14,9 +14,6 @@ export class UserTracking {
   @Prop({ required: true })
   organizationId: string;
 
-  @Prop({ required: false })
-  visitId: string;
-
   @Prop({ type: Number, required: true })
   lat: number;
 
@@ -31,6 +28,5 @@ export const UserTrackingSchema = SchemaFactory.createForClass(UserTracking);
 UserTrackingSchema.index({
   userId: 1,
   date: 1,
-  visitId: 1,
   workDaySessionId: 1,
 });

@@ -34,7 +34,7 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .addBearerAuth()
-    .setTitle("Fieldtrack")
+    .setTitle("UserFieldtrack")
     .setDescription("API Documentation")
     .setVersion("1.0")
     .build();

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Mobile User (Employee)</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  </head>
+  <body>
+    <h2>📱 Mobile User Socket Test</h2>
+
+    <label>User ID:</label>
+    <input type="text" id="userId" value="U123" />
+    <label>Schema:</label>
+    <input type="text" id="schemaName" value="company1" />
+    <label>Org ID:</label>
+    <input type="text" id="organizationId" value="ORG001" />
+    <label>Work Session ID:</label>
+    <input type="text" id="workDaySessionId" value="SESSION123" />
+    <label>Date:</label>
+    <input type="date" id="date" value="2025-07-02" />
+    <br /><br />
+
+    <button onclick="join()">🔌 Join (user_joined)</button>
+    <button onclick="startLocation()">📍 Start Sending Location</button>
+    <button onclick="stopLocation()">🛑 Stop</button>
+
+    <pre
+      id="log"
+      style="background: #f1f1f1; padding: 10px; margin-top: 20px"
+    ></pre>
+
+    <script>
+      const socket = io("http://localhost:4002"); // your backend
+      let interval = null;
+
+      function getValues() {
+        const dateInput = document.getElementById("date").value;
+        const [year, month, day] = dateInput.split("-");
+        const formattedDate = `${day}-${month}-${year}`;
+
+        return {
+          userId: document.getElementById("userId").value,
+          schemaName: document.getElementById("schemaName").value,
+          organizationId: document.getElementById("organizationId").value,
+          workDaySessionId: document.getElementById("workDaySessionId").value,
+          date: formattedDate,
+        };
+      }
+
+      function join() {
+        const { userId } = getValues();
+        socket.emit("user_joined", { userId });
+        log(`🔌 user_joined: ${userId}`);
+      }
+
+      function startLocation() {
+        const vals = getValues();
+        interval = setInterval(() => {
+          const lat = (19 + Math.random()).toFixed(6);
+          const long = (72 + Math.random()).toFixed(6);
+          const payload = {
+            ...vals,
+            lat: parseFloat(lat),
+            long: parseFloat(long),
+          };
+          socket.emit("location_update", payload);
+          log(`📡 location_update:\n${JSON.stringify(payload, null, 2)}`);
+        }, 3000);
+      }
+
+      function stopLocation() {
+        clearInterval(interval);
+        log("🛑 location sending stopped.");
+      }
+
+      function log(msg) {
+        const logBox = document.getElementById("log");
+        logBox.innerText = msg + "\n\n" + logBox.innerText;
+      }
+    </script>
+  </body>
+</html>

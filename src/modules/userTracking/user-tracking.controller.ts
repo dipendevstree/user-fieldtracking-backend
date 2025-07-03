@@ -15,7 +15,6 @@ import { ApiTags, ApiBearerAuth, ApiQuery } from "@nestjs/swagger";
 import { JwtAuthGuard } from "src/modules/auth/jwt-auth.guard";
 import { RolesGuard } from "src/modules/auth/role-auth-guard";
 import { commonResponse } from "helper";
-import moment from "moment-timezone";
 
 @ApiTags("UserTracking")
 @ApiBearerAuth()
@@ -32,7 +31,6 @@ export class UserTrackingController {
   ) {
     const schemaName = req.user.schemaName;
     dto["userId"] = req.user.id;
-    dto["date"] = moment(dto.date, "DD-MM-YYYY").toISOString();
     dto["organizationId"] = req.user.organizationID;
     let result = await this.userTrackingService.create(dto, schemaName);
     return commonResponse.success(

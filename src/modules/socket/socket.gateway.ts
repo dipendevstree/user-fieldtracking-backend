@@ -5,11 +5,11 @@ import {
   OnGatewayDisconnect,
   SubscribeMessage,
   MessageBody,
+  ConnectedSocket,
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
 import { Injectable, Logger } from "@nestjs/common";
-
-import { UsersService } from "../users/user.service";
+import { UserTrackingService } from "../userTracking/user-tracking.service";
 
 @Injectable()
 @WebSocketGateway({
@@ -21,7 +21,7 @@ import { UsersService } from "../users/user.service";
   upgrades: ["websocket"],
 })
 export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly userTrackingService: UserTrackingService) {}
   private readonly logger = new Logger(SocketGateway.name);
 
   @WebSocketServer()
@@ -29,56 +29,68 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   // 🔌 When any client (mobile or admin) connects
   handleConnection(client: Socket) {
-    this.logger.log(`Client connected: ${client.id}`);
+    console.log(`Client connected: ${client.id}`);
   }
 
   // ❌ When a client disconnects
   handleDisconnect(client: Socket) {
-    this.logger.log(`Client disconnected: ${client.id}`);
+    console.log(`Client disconnected: ${client.id}`);
   }
 
   // 📍 [MOBILE] Employee registers on connection
   @SubscribeMessage("user_joined")
   handleRegisterEmployee(
     @MessageBody() data: { userId: string },
-    client: Socket
+    @ConnectedSocket() client: Socket
   ) {
     const room = `user_${data.userId}`;
     client.join(room);
-    this.logger.log(`User joined room: ${room}`);
+    console.log(`🔌 user_joined → Joined room: ${room}`);
   }
 
   // 📡 [MOBILE] Sends live location updates
   @SubscribeMessage("location_update")
   handleLocationUpdate(
-    @MessageBody() data: { userId: string; lat: number; long: number }
+    @MessageBody()
+    data: {
+      userId: string;
+      lat: number;
+      long: number;
+      workDaySessionId: string;
+      organizationId: string;
+      date: string;
+      schemaName: string;
+    }
   ) {
     const room = `web_${data.userId}`;
     const payload = {
-      userId: data.userId,
-      lat: data.lat,
-      long: data.long,
+      ...data,
       timestamp: new Date().toISOString(),
     };
     this.server.to(room).emit("live_location", payload);
+    console.log(`📡 location_update → Sent to room: ${room}`);
+    this.userTrackingService.create(payload, data.schemaName);
   }
 
   // 🖥️ [ADMIN] Starts tracking a specific employee
   @SubscribeMessage("track_user")
-  handleTrackEmployee(@MessageBody() data: { userId: string }, client: Socket) {
+  handleTrackEmployee(
+    @MessageBody() data: { userId: string },
+    @ConnectedSocket() client: Socket
+  ) {
     const room = `web_${data.userId}`;
     client.join(room);
-    this.logger.log(`Web joined room: ${room}`);
+    console.log(`🖥️ track_user → Admin joined room: ${room}`);
   }
 
   // 🔄 [ADMIN] Stops tracking a specific employee
   @SubscribeMessage("untrack_user")
   handleUntrackEmployee(
     @MessageBody() data: { userId: string },
-    client: Socket
+    @ConnectedSocket() client: Socket
   ) {
     const room = `web_${data.userId}`;
     client.leave(room);
-    this.logger.log(`Web left room: ${room}`);
+    console.log(`❌ untrack_user → Admin left room: ${room}`);
   }
 }

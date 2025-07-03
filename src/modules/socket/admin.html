@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Admin User (Web)</title>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  </head>
+  <body>
+    <h2>🖥️ Admin Socket Test</h2>
+
+    <label>User ID to Track:</label>
+    <input type="text" id="userId" value="U123" />
+    <br /><br />
+
+    <button onclick="trackUser()">✅ track_user</button>
+    <button onclick="untrackUser()">❌ untrack_user</button>
+
+    <pre
+      id="log"
+      style="background: #f1f1f1; padding: 10px; margin-top: 20px"
+    ></pre>
+
+    <script>
+      const socket = io("http://localhost:4002"); // your backend
+
+      socket.on("connect", () => log("✅ Connected to Socket Server"));
+
+      socket.on("live_location", (data) => {
+        log("📥 live_location:\n" + JSON.stringify(data, null, 2));
+      });
+
+      function trackUser() {
+        const userId = document.getElementById("userId").value;
+        socket.emit("track_user", { userId });
+        log(`✅ track_user: ${userId}`);
+      }
+
+      function untrackUser() {
+        const userId = document.getElementById("userId").value;
+        socket.emit("untrack_user", { userId });
+        log(`❌ untrack_user: ${userId}`);
+      }
+
+      function log(msg) {
+        const logBox = document.getElementById("log");
+        logBox.innerText = msg + "\n\n" + logBox.innerText;
+      }
+    </script>
+  </body>
+</html>

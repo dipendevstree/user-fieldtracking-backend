@@ -27,8 +27,11 @@ export class UserTrackingService {
     dto: CreateUserTrackingDto,
     tenantId: string
   ): Promise<UserTracking> {
+    dto["date"] = moment(dto.date, "DD-MM-YYYY").toISOString();
     const model = this.getModel(tenantId);
-    return await model.create(dto);
+    let response = await model.create(dto);
+    console.log("response", response);
+    return response;
   }
 
   async findAll(tenantId: string, query: any): Promise<UserTracking[]> {
