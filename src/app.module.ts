@@ -34,6 +34,7 @@ import { AppConfigService } from "./config/app/config.service";
 import { MongooseModule } from "@nestjs/mongoose";
 import { UserTrackingModule } from "./modules/userTracking/user-tracking.module";
 import { SocketModule } from "./modules/socket/socket.module";
+import { RedisModule } from "./modules/redis/redis.module";
 
 @Module({
   imports: [
@@ -83,6 +84,7 @@ import { SocketModule } from "./modules/socket/socket.module";
     AuthModule,
     UserTrackingModule,
     SocketModule,
+    RedisModule,
     PostgresDatabaseProviderModule,
   ],
   controllers: [AppController],
