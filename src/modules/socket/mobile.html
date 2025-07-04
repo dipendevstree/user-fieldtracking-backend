@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <title>Mobile User (Employee)</title>
@@ -29,7 +29,7 @@
     ></pre>
 
     <script>
-      const socket = io("http://localhost:4002"); // your backend
+      const socket = io("https://userfieldtracking-api.devstree.in/"); // your backend
       let interval = null;
 
       function getValues() {
@@ -47,13 +47,25 @@
       }
 
       function join() {
-        const { userId } = getValues();
+        const { userId } = {
+          userId: "uuid",
+          schemaName: "public",
+          organizationId: "uuid",
+          workDaySessionId: "uuid",
+          date: "02-07-2025",
+        };
         socket.emit("user_joined", { userId });
         log(`🔌 user_joined: ${userId}`);
       }
 
       function startLocation() {
-        const vals = getValues();
+        const vals = {
+          userId: "uuid",
+          schemaName: "public",
+          organizationId: "uuid",
+          workDaySessionId: "uuid",
+          date: "02-07-2025",
+        };
         interval = setInterval(() => {
           const lat = (19 + Math.random()).toFixed(6);
           const long = (72 + Math.random()).toFixed(6);
