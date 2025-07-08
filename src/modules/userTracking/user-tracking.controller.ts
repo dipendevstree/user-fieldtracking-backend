@@ -102,7 +102,7 @@ export class UserTrackingController {
     );
   }
 
-  @Get("last-lot-long1/:userId")
+  @Get("last-lot-long/:userId")
   @ApiQuery({
     name: "withFullAddress",
     required: false,
