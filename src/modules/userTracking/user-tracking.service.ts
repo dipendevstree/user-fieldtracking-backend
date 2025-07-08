@@ -53,21 +53,17 @@ export class UserTrackingService {
     const whereCondition: any = {
       ...commonFunctions.appendIfValid("userId", userId),
     };
-
     let latestEntry = await model
       .findOne(whereCondition)
       .sort({ createdAt: -1 })
       .lean();
-    console.log("latestEntry", latestEntry, withFullAddress);
     if (withFullAddress && latestEntry) {
       const address = await commonFunctions.getFullAddressByLatLong(
         latestEntry.lat,
         latestEntry.long
       );
-      console.log("address", address);
       latestEntry["fullAddress"] = address;
     }
-    console.log("latestEntry", latestEntry);
     return latestEntry;
   }
 
@@ -115,7 +111,7 @@ export class UserTrackingService {
     const redisKey = workDaySessionId
       ? `user_tracking:${userId}:${workDaySessionId}`
       : null;
-    console.log("redisKey", redisKey);
+
     // Try Redis if session ID is available
     if (redisKey) {
       const redisData = await this.redisService.lrange(redisKey, 0, -1);
