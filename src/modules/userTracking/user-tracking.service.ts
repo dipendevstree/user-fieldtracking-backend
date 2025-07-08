@@ -46,6 +46,31 @@ export class UserTrackingService {
     return userTracking;
   }
 
+  async getSingleEntryByQuery(query: any, tenantId: string) {
+    const model = this.getModel(tenantId);
+    let { userId, withFullAddress } = query;
+    console.log("userId", userId);
+    const whereCondition: any = {
+      ...commonFunctions.appendIfValid("userId", userId),
+    };
+
+    let latestEntry = await model
+      .findOne(whereCondition)
+      .sort({ createdAt: -1 })
+      .lean();
+    console.log("latestEntry", latestEntry, withFullAddress);
+    if (withFullAddress && latestEntry) {
+      const address = await commonFunctions.getFullAddressByLatLong(
+        latestEntry.lat,
+        latestEntry.long
+      );
+      console.log("address", address);
+      latestEntry["fullAddress"] = address;
+    }
+    console.log("latestEntry", latestEntry);
+    return latestEntry;
+  }
+
   async createMultiple(
     dtos: CreateUserTrackingDto[],
     tenantId: string,
