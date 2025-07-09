@@ -67,23 +67,10 @@ export class UserTrackingService {
     return latestEntry;
   }
 
-  async createMultiple(
-    dtos: CreateUserTrackingDto[],
-    tenantId: string,
-    userId: string,
-    organizationId: string
-  ): Promise<UserTracking[]> {
+  async createMultiple(dtos: any, tenantId: string): Promise<UserTracking[]> {
     const model = this.getModel(tenantId);
 
-    // Inject userId, organizationId, and format date in one map
-    const formattedDtos = dtos.map((dto) => ({
-      ...dto,
-      userId,
-      organizationId,
-      date: moment.utc(dto.date, "DD-MM-YYYY").startOf("day").toDate(), // 👈 Ensures 00:00:00 UTC
-    }));
-
-    const insertedRecords = await model.insertMany(formattedDtos);
+    const insertedRecords: any = await model.insertMany(dtos);
 
     // Redis push (parallel)
     Promise.all(

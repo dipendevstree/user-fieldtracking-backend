@@ -15,6 +15,7 @@ import { ApiTags, ApiBearerAuth, ApiQuery } from "@nestjs/swagger";
 import { JwtAuthGuard } from "src/modules/auth/jwt-auth.guard";
 import { RolesGuard } from "src/modules/auth/role-auth-guard";
 import { commonResponse } from "helper";
+import moment from "moment-timezone";
 import { CreateMultipleUserTrackingDto } from "./dtos/create-multiple-user-tracking.dto";
 
 @ApiTags("UserTracking")
@@ -50,11 +51,47 @@ export class UserTrackingController {
     @Body() body: CreateMultipleUserTrackingDto
   ) {
     const schemaName = req.user.schemaName;
+    let { location, workDaySessionId, date } = body;
+    let latLongArray = [];
+    if (location?.length > 0) {
+      for (let index = 0; index < location.length; index++) {
+        const element = location[index];
+        const latitude = element?.coords?.latitude;
+        const longitude = element?.coords?.longitude;
+        if (latitude != null && longitude != null) {
+          latLongArray.push({
+            workDaySessionId: workDaySessionId,
+            userId: req.user.id,
+            organizationId: req.user.organizationID,
+            speed: element?.coords?.speed,
+            date: moment.utc(date, "DD-MM-YYYY").startOf("day").toDate(),
+            lat: latitude,
+            long: longitude,
+          });
+        } else {
+          console.log("Invalid coordinates in element:", element);
+        }
+      }
+    } else if (location?.coords) {
+      const latitude = location?.coords?.latitude;
+      const longitude = location?.coords?.longitude;
+      if (latitude != null && longitude != null) {
+        latLongArray.push({
+          workDaySessionId: workDaySessionId,
+          userId: req.user.id,
+          organizationId: req.user.organizationID,
+          speed: location?.coords?.speed,
+          date: moment.utc(date, "DD-MM-YYYY").startOf("day").toDate(),
+          lat: latitude,
+          long: longitude,
+        });
+      } else {
+        console.log("Invalid single location:", location);
+      }
+    }
     const result = await this.userTrackingService.createMultiple(
-      body.data,
-      schemaName,
-      req.user.id,
-      req.user.organizationID
+      latLongArray,
+      schemaName
     );
     return commonResponse.success(
       "en",

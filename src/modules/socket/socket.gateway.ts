@@ -60,6 +60,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       organizationId: string;
       date: string;
       schemaName: string;
+      speed: string;
     }
   ) {
     const room = `web_${data.userId}`;
