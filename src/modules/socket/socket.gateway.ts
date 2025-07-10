@@ -36,7 +36,15 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   handleDisconnect(client: Socket) {
     console.log(`Client disconnected: ${client.id}`);
   }
-
+  emitLiveLocation(data: any) {
+    const room = `web_${data.userId}`;
+    const payload = {
+      ...data,
+      timestamp: new Date().toISOString(),
+    };
+    this.server.to(room).emit("live_location", payload);
+    console.log(`📡 location_update → Sent to room: ${room}`);
+  }
   // 📍 [MOBILE] Employee registers on connection
   @SubscribeMessage("user_joined")
   handleRegisterEmployee(
@@ -63,13 +71,10 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       speed: string;
     }
   ) {
-    const room = `web_${data.userId}`;
     const payload = {
       ...data,
       timestamp: new Date().toISOString(),
     };
-    this.server.to(room).emit("live_location", payload);
-    console.log(`📡 location_update → Sent to room: ${room}`);
     this.userTrackingService.create(payload, data.schemaName);
   }
 

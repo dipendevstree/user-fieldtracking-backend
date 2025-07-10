@@ -9,6 +9,7 @@ import { GetModelForCompany } from "src/middleware/dynamic-model.service";
 import { commonFunctions } from "helper";
 import moment from "moment-timezone";
 import { RedisService } from "../redis/redis.service";
+import { SocketGateway } from "../socket/socket.gateway";
 
 @Injectable()
 export class UserTrackingService {
@@ -16,7 +17,8 @@ export class UserTrackingService {
 
   constructor(
     private readonly modelUtil: GetModelForCompany,
-    private readonly redisService: RedisService
+    private readonly redisService: RedisService,
+    private readonly socketGateway: SocketGateway
   ) {}
 
   private getModel(tenantId: string): Model<UserTracking> {
@@ -39,11 +41,33 @@ export class UserTrackingService {
     // Save to DB
     const userTracking = await model.create({ ...dto, date: formattedDate });
     if (!userTracking) return null;
+
+    // Call socket
+    this.socketGateway.emitLiveLocation(userTracking);
+
     // Push to Redis
     const redisKey = `user_tracking:${userTracking.userId}:${userTracking.workDaySessionId}`;
-    await this.redisService.lpush(redisKey, userTracking); // Optional: JSON.stringify(userTracking)
-    await this.redisService.expire(redisKey, 86400); // 1 day = 86400 seconds
+    this.redisService.lpush(redisKey, userTracking);
+    this.redisService.expire(redisKey, 86400);
+
     return userTracking;
+  }
+
+  async createMultiple(dtos: any, tenantId: string): Promise<UserTracking[]> {
+    const model = this.getModel(tenantId);
+    const insertedRecords: any = await model.insertMany(dtos);
+    Promise.all(
+      insertedRecords.map((record) => {
+        const redisKey = `user_tracking:${record.userId}:${record.workDaySessionId}`;
+        this.socketGateway.emitLiveLocation(record);
+        return Promise.all([
+          this.redisService.lpush(redisKey, record),
+          this.redisService.expire(redisKey, 86400),
+        ]);
+      })
+    );
+
+    return insertedRecords;
   }
 
   async getSingleEntryByQuery(query: any, tenantId: string) {
@@ -65,25 +89,6 @@ export class UserTrackingService {
       latestEntry["fullAddress"] = address;
     }
     return latestEntry;
-  }
-
-  async createMultiple(dtos: any, tenantId: string): Promise<UserTracking[]> {
-    const model = this.getModel(tenantId);
-
-    const insertedRecords: any = await model.insertMany(dtos);
-
-    // Redis push (parallel)
-    Promise.all(
-      insertedRecords.map((record) => {
-        const redisKey = `user_tracking:${record.userId}:${record.workDaySessionId}`;
-        return Promise.all([
-          this.redisService.lpush(redisKey, record),
-          this.redisService.expire(redisKey, 86400),
-        ]);
-      })
-    );
-
-    return insertedRecords;
   }
 
   async findAll(tenantId: string, query: any): Promise<UserTracking[]> {
