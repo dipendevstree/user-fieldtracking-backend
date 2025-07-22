@@ -31,7 +31,8 @@ export class UserTrackingService {
 
   private handleRedisAndSocketAsync(records: any[]) {
     for (let i = 0; i < records.length; i++) {
-      const record = records[i];
+      const record = records[i].toObject();
+      console.log("handleRedisAndSocketAsyncRecord", record);
       const redisKey = `user_tracking:${record.userId}:${record.workDaySessionId}`;
       // Emit live location
       this.socketGateway.emitLiveLocation(record);
@@ -59,8 +60,9 @@ export class UserTrackingService {
     const userTracking = await model.create({ ...dto, date: formattedDate });
     if (!userTracking) return null;
 
+    console.log("singleCreate", userTracking.toObject());
     // Call socket
-    this.socketGateway.emitLiveLocation(userTracking);
+    this.socketGateway.emitLiveLocation(userTracking.toObject());
 
     // Push to Redis
     const redisKey = `user_tracking:${userTracking.userId}:${userTracking.workDaySessionId}`;

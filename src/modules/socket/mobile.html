@@ -47,25 +47,14 @@
       }
 
       function join() {
-        const { userId } = {
-          userId: "uuid",
-          schemaName: "public",
-          organizationId: "uuid",
-          workDaySessionId: "uuid",
-          date: "02-07-2025",
-        };
+        const { userId } = getValues();
+        console.log("socket", socket);
         socket.emit("user_joined", { userId });
         log(`🔌 user_joined: ${userId}`);
       }
 
       function startLocation() {
-        const vals = {
-          userId: "uuid",
-          schemaName: "public",
-          organizationId: "uuid",
-          workDaySessionId: "uuid",
-          date: "02-07-2025",
-        };
+        const vals = getValues();
         interval = setInterval(() => {
           const lat = (19 + Math.random()).toFixed(6);
           const long = (72 + Math.random()).toFixed(6);

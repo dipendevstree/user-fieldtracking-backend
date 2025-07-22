@@ -46,6 +46,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       ...data,
       timestamp: new Date().toISOString(),
     };
+    console.log("payloadpayloadpayload", payload);
     this.server.to(room).emit("live_location", payload);
     console.log(`📡 location_update → Sent to room: ${room}`);
   }
@@ -64,21 +65,14 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage("location_update")
   handleLocationUpdate(
     @MessageBody()
-    data: {
-      userId: string;
-      lat: number;
-      long: number;
-      workDaySessionId: string;
-      organizationId: string;
-      date: string;
-      schemaName: string;
-      speed: string;
-    }
+    data: any
   ) {
+    console.log("location_updateData", data);
     const payload = {
       ...data,
       timestamp: new Date().toISOString(),
     };
+
     this.userTrackingService.create(payload, data.schemaName);
   }
 
