@@ -10,6 +10,7 @@ import {
 import { Server, Socket } from "socket.io";
 import { Injectable, Logger } from "@nestjs/common";
 import { UserTrackingService } from "../userTracking/user-tracking.service";
+import { Inject, forwardRef } from "@nestjs/common";
 
 @Injectable()
 @WebSocketGateway({
@@ -21,7 +22,10 @@ import { UserTrackingService } from "../userTracking/user-tracking.service";
   upgrades: ["websocket"],
 })
 export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
-  constructor(private readonly userTrackingService: UserTrackingService) {}
+  constructor(
+    @Inject(forwardRef(() => UserTrackingService))
+    private readonly userTrackingService: UserTrackingService
+  ) {}
   private readonly logger = new Logger(SocketGateway.name);
 
   @WebSocketServer()
