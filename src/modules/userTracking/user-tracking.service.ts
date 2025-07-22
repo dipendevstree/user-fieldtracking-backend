@@ -133,7 +133,7 @@ export class UserTrackingService {
         $lte: moment.tz(endDate, timeZone).endOf("day").toDate(),
       };
     }
-    return await model.find(whereCondition).sort({ createdAt: -1 });
+    return await model.find(whereCondition).sort({ createdAt: 1 });
   }
 
   async deleteAll(tenantId: string): Promise<{ deletedCount?: number }> {
