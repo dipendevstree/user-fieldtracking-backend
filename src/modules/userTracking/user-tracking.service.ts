@@ -29,6 +29,23 @@ export class UserTrackingService {
     );
   }
 
+  private handleRedisAndSocketAsync(records: any[]) {
+    for (let i = 0; i < records.length; i++) {
+      const record = records[i];
+      const redisKey = `user_tracking:${record.userId}:${record.workDaySessionId}`;
+      // Emit live location
+      this.socketGateway.emitLiveLocation(record);
+      // Fire-and-forget Redis operations
+      void Promise.all([
+        this.redisService.lpush(redisKey, record),
+        this.redisService.expire(redisKey, 86400),
+      ]).catch((err) => {
+        // Optional: Log error if Redis fails
+        console.error(`Redis error for key ${redisKey}:`, err);
+      });
+    }
+  }
+
   async create(
     dto: CreateUserTrackingDto,
     tenantId: string
@@ -56,17 +73,9 @@ export class UserTrackingService {
   async createMultiple(dtos: any, tenantId: string): Promise<UserTracking[]> {
     const model = this.getModel(tenantId);
     const insertedRecords: any = await model.insertMany(dtos);
-    Promise.all(
-      insertedRecords.map((record) => {
-        const redisKey = `user_tracking:${record.userId}:${record.workDaySessionId}`;
-        this.socketGateway.emitLiveLocation(record);
-        return Promise.all([
-          this.redisService.lpush(redisKey, record),
-          this.redisService.expire(redisKey, 86400),
-        ]);
-      })
-    );
 
+    // Run Redis and socket tasks in background
+    this.handleRedisAndSocketAsync(insertedRecords);
     return insertedRecords;
   }
 
