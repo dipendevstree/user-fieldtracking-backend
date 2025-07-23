@@ -5,9 +5,10 @@ import { GetModelForCompany } from "src/middleware/dynamic-model.service";
 import { JwtService } from "@nestjs/jwt";
 import { RedisModule } from "../redis/redis.module";
 import { RedisService } from "../redis/redis.service";
+import { SocketModule } from "../socket/socket.module";
 
 @Module({
-  imports: [forwardRef(() => RedisModule)],
+  imports: [forwardRef(() => RedisModule), forwardRef(() => SocketModule)],
   controllers: [UserTrackingController],
   providers: [
     UserTrackingService,

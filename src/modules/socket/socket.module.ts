@@ -1,12 +1,12 @@
 import { forwardRef, Module } from "@nestjs/common";
 import { SocketGateway } from "./socket.gateway";
-import { UsersModule } from "../users/user.module";
 import { UserTrackingModule } from "../userTracking/user-tracking.module";
+import { RedisModule } from "../redis/redis.module";
 
 @Module({
   imports: [
-    forwardRef(() => UsersModule),
     forwardRef(() => UserTrackingModule),
+    forwardRef(() => RedisModule),
   ],
   providers: [SocketGateway],
   exports: [SocketGateway],

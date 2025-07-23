@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { forwardRef, Inject, Injectable } from "@nestjs/common";
 import { Model } from "mongoose";
 import { CreateUserTrackingDto } from "./dtos/create-user-tracking.dto";
 import {
@@ -9,6 +9,7 @@ import { GetModelForCompany } from "src/middleware/dynamic-model.service";
 import { commonFunctions } from "helper";
 import moment from "moment-timezone";
 import { RedisService } from "../redis/redis.service";
+import { SocketGateway } from "../socket/socket.gateway";
 
 @Injectable()
 export class UserTrackingService {
@@ -16,7 +17,8 @@ export class UserTrackingService {
 
   constructor(
     private readonly modelUtil: GetModelForCompany,
-    private readonly redisService: RedisService
+    private readonly redisService: RedisService,
+    private readonly socketGateway: SocketGateway
   ) {}
 
   private getModel(tenantId: string): Model<UserTracking> {
@@ -25,6 +27,16 @@ export class UserTrackingService {
       UserTrackingSchema,
       tenantId
     );
+  }
+  private async pushToRedis(insertedRecords: any): Promise<void> {
+    for (const record of insertedRecords) {
+      let userTracking = record.toObject();
+      console.log("userTracking", userTracking);
+      this.socketGateway.emitLiveLocation(userTracking);
+      const redisKey = `user_tracking:${record.userId}:${record.workDaySessionId}`;
+      await this.redisService.lpush(redisKey, userTracking); // Optional: JSON.stringify(userTracking)
+      await this.redisService.expire(redisKey, 86400); // 1 day = 86400 seconds
+    }
   }
 
   async create(
@@ -46,35 +58,12 @@ export class UserTrackingService {
     return userTracking;
   }
 
-  async createMultiple(
-    dtos: CreateUserTrackingDto[],
-    tenantId: string,
-    userId: string,
-    organizationId: string
-  ): Promise<UserTracking[]> {
+  async createMultiple(dtos: any, tenantId: string): Promise<UserTracking[]> {
     const model = this.getModel(tenantId);
+    const insertedRecords: any = await model.insertMany(dtos);
 
-    // Inject userId, organizationId, and format date in one map
-    const formattedDtos = dtos.map((dto) => ({
-      ...dto,
-      userId,
-      organizationId,
-      date: moment.utc(dto.date, "DD-MM-YYYY").startOf("day").toDate(), // 👈 Ensures 00:00:00 UTC
-    }));
-
-    const insertedRecords = await model.insertMany(formattedDtos);
-
-    // Redis push (parallel)
-    Promise.all(
-      insertedRecords.map((record) => {
-        const redisKey = `user_tracking:${record.userId}:${record.workDaySessionId}`;
-        return Promise.all([
-          this.redisService.lpush(redisKey, record),
-          this.redisService.expire(redisKey, 86400),
-        ]);
-      })
-    );
-
+    // Run Redis and socket tasks in background
+    this.pushToRedis(insertedRecords);
     return insertedRecords;
   }
 

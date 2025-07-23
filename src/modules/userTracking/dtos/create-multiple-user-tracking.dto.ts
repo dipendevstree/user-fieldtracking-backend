@@ -1,13 +1,22 @@
 import { ApiProperty } from "@nestjs/swagger";
 import { Type } from "class-transformer";
-import { ArrayMinSize, IsArray, ValidateNested } from "class-validator";
-import { CreateUserTrackingDto } from "./create-user-tracking.dto";
+import { IsNotEmpty, IsOptional, IsString, Matches } from "class-validator";
 
 export class CreateMultipleUserTrackingDto {
-  @IsArray()
-  @ArrayMinSize(1)
-  @ValidateNested({ each: true })
-  @Type(() => CreateUserTrackingDto)
-  @ApiProperty({ type: [CreateUserTrackingDto] })
-  data: CreateUserTrackingDto[];
+  @IsOptional()
+  @ApiProperty()
+  location: any;
+
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty()
+  @Matches(/^(0\d|[12]\d|3[01])-(0\d|1[0-2])-\d{4}$/, {
+    message: "date must be in DD-MM-YYYY format",
+  })
+  date: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @ApiProperty()
+  workDaySessionId: string;
 }

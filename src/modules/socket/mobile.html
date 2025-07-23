@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
   <head>
     <title>Mobile User (Employee)</title>
@@ -29,7 +29,7 @@
     ></pre>
 
     <script>
-      const socket = io("http://localhost:4002"); // your backend
+      const socket = io("https://userfieldtracking-api.devstree.in/"); // your backend
       let interval = null;
 
       function getValues() {
@@ -48,6 +48,7 @@
 
       function join() {
         const { userId } = getValues();
+        console.log("socket", socket);
         socket.emit("user_joined", { userId });
         log(`🔌 user_joined: ${userId}`);
       }

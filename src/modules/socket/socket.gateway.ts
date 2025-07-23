@@ -8,7 +8,7 @@ import {
   ConnectedSocket,
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
-import { Injectable, Logger } from "@nestjs/common";
+import { forwardRef, Inject, Injectable, Logger } from "@nestjs/common";
 import { UserTrackingService } from "../userTracking/user-tracking.service";
 
 @Injectable()
@@ -21,7 +21,10 @@ import { UserTrackingService } from "../userTracking/user-tracking.service";
   upgrades: ["websocket"],
 })
 export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
-  constructor(private readonly userTrackingService: UserTrackingService) {}
+  constructor(
+    @Inject(forwardRef(() => UserTrackingService))
+    private readonly userTrackingService: UserTrackingService
+  ) {}
   private readonly logger = new Logger(SocketGateway.name);
 
   @WebSocketServer()
@@ -48,6 +51,28 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     console.log(`🔌 user_joined → Joined room: ${room}`);
   }
 
+  emitLiveLocation(data: any) {
+    const room = `web_${data.userId}`;
+    const payload = {
+      ...data,
+      timestamp: new Date().toISOString(),
+    };
+
+    try {
+      const roomInfo = this.server.sockets.adapter.rooms.get(room);
+      const numberOfClients = roomInfo ? roomInfo.size : 0;
+
+      if (numberOfClients > 0) {
+        this.server.to(room).emit("live_location", payload);
+        console.log(`📡 location_update → Sent to room: ${room}`, payload);
+      } else {
+        console.log(`⚠️ Room ${room} is empty. Skipping emit.`);
+      }
+    } catch (error) {
+      console.error("❌ Emit error:", error.message);
+    }
+  }
+
   // 📡 [MOBILE] Sends live location updates
   @SubscribeMessage("location_update")
   handleLocationUpdate(
@@ -59,7 +84,15 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       ...data,
       timestamp: new Date().toISOString(),
     };
-    this.server.to(room).emit("live_location", payload);
+    const roomInfo = this.server.sockets.adapter.rooms.get(room);
+    const numberOfClients = roomInfo ? roomInfo.size : 0;
+
+    if (numberOfClients > 0) {
+      this.server.to(room).emit("live_location", payload);
+      console.log(`📡 location_update → Sent to room: ${room}`);
+    } else {
+      console.log(`⚠️ Room ${room} is empty. Skipping emit.`);
+    }
     console.log(`📡 location_update → Sent to room: ${room}`);
     this.userTrackingService.create(payload, data.schemaName);
   }
