@@ -46,9 +46,20 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       ...data,
       timestamp: new Date().toISOString(),
     };
-    console.log("payloadpayloadpayload", payload);
-    this.server.to(room).emit("live_location", payload);
-    console.log(`📡 location_update → Sent to room: ${room}`);
+
+    try {
+      const roomInfo = this.server.sockets.adapter.rooms.get(room);
+      const numberOfClients = roomInfo ? roomInfo.size : 0;
+
+      if (numberOfClients > 0) {
+        this.server.to(room).emit("live_location", payload);
+        console.log(`📡 location_update → Sent to room: ${room}`);
+      } else {
+        console.log(`⚠️ Room ${room} is empty. Skipping emit.`);
+      }
+    } catch (error) {
+      console.error("❌ Emit error:", error.message);
+    }
   }
   // 📍 [MOBILE] Employee registers on connection
   @SubscribeMessage("user_joined")
