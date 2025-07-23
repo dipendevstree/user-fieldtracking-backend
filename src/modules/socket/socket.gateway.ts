@@ -52,15 +52,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage("location_update")
   handleLocationUpdate(
     @MessageBody()
-    data: {
-      userId: string;
-      lat: number;
-      long: number;
-      workDaySessionId: string;
-      organizationId: string;
-      date: string;
-      schemaName: string;
-    }
+    data: any
   ) {
     const room = `web_${data.userId}`;
     const payload = {
