@@ -22,7 +22,7 @@ import { UserTrackingService } from "../userTracking/user-tracking.service";
 })
 export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
-    @Inject(forwardRef(() => UserTrackingService))
+    // @Inject(forwardRef(() => UserTrackingService))
     private readonly userTrackingService: UserTrackingService
   ) {}
   private readonly logger = new Logger(SocketGateway.name);

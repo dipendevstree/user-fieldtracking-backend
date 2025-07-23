@@ -9,7 +9,7 @@ import { GetModelForCompany } from "src/middleware/dynamic-model.service";
 import { commonFunctions } from "helper";
 import moment from "moment-timezone";
 import { RedisService } from "../redis/redis.service";
-import { SocketGateway } from "../socket/socket.gateway";
+// import { SocketGateway } from "../socket/socket.gateway";
 
 @Injectable()
 export class UserTrackingService {
@@ -17,8 +17,8 @@ export class UserTrackingService {
 
   constructor(
     private readonly modelUtil: GetModelForCompany,
-    private readonly redisService: RedisService,
-    private readonly socketGateway: SocketGateway
+    private readonly redisService: RedisService
+    // private readonly socketGateway: SocketGateway
   ) {}
 
   private getModel(tenantId: string): Model<UserTracking> {
@@ -32,7 +32,7 @@ export class UserTrackingService {
     for (const record of insertedRecords) {
       let userTracking = record.toObject();
       console.log("userTracking", userTracking);
-      this.socketGateway.emitLiveLocation(userTracking);
+      // this.socketGateway.emitLiveLocation(userTracking);
       const redisKey = `user_tracking:${record.userId}:${record.workDaySessionId}`;
       await this.redisService.lpush(redisKey, userTracking); // Optional: JSON.stringify(userTracking)
       await this.redisService.expire(redisKey, 86400); // 1 day = 86400 seconds
