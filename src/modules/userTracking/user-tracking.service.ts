@@ -117,7 +117,7 @@ export class UserTrackingService {
 
     // Try Redis if session ID is available
     if (redisKey) {
-      const redisData = await this.redisService.lrange(redisKey, 0, -1);
+      const redisData = await this.redisService.lrange(redisKey, 0, 1);
       if (redisData?.length) return redisData;
     }
     // Fallback to DB
