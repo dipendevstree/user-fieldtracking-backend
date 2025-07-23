@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { forwardRef, Inject, Injectable } from "@nestjs/common";
 import { Model } from "mongoose";
 import { CreateUserTrackingDto } from "./dtos/create-user-tracking.dto";
 import {
@@ -28,22 +28,14 @@ export class UserTrackingService {
       tenantId
     );
   }
-
-  private handleRedisAndSocketAsync(records: any[]) {
-    for (let i = 0; i < records.length; i++) {
-      const record = records[i].toObject();
-      console.log("handleRedisAndSocketAsyncRecord", record);
+  private async pushToRedis(insertedRecords: any): Promise<void> {
+    for (const record of insertedRecords) {
+      let userTracking = record.toObject();
+      console.log("userTracking", userTracking);
+      this.socketGateway.emitLiveLocation(userTracking);
       const redisKey = `user_tracking:${record.userId}:${record.workDaySessionId}`;
-      // Emit live location
-      this.socketGateway.emitLiveLocation(record);
-      // Fire-and-forget Redis operations
-      void Promise.all([
-        this.redisService.lpush(redisKey, record),
-        this.redisService.expire(redisKey, 86400),
-      ]).catch((err) => {
-        // Optional: Log error if Redis fails
-        console.error(`Redis error for key ${redisKey}:`, err);
-      });
+      await this.redisService.lpush(redisKey, userTracking); // Optional: JSON.stringify(userTracking)
+      await this.redisService.expire(redisKey, 86400); // 1 day = 86400 seconds
     }
   }
 
@@ -59,16 +51,11 @@ export class UserTrackingService {
     // Save to DB
     const userTracking = await model.create({ ...dto, date: formattedDate });
     if (!userTracking) return null;
-
-    console.log("singleCreate", userTracking.toObject());
-    // Call socket
-    this.socketGateway.emitLiveLocation(userTracking.toObject());
-
     // Push to Redis
+    console.log("createUserTracking", userTracking);
     const redisKey = `user_tracking:${userTracking.userId}:${userTracking.workDaySessionId}`;
-    this.redisService.lpush(redisKey, userTracking);
-    this.redisService.expire(redisKey, 86400);
-
+    await this.redisService.lpush(redisKey, userTracking); // Optional: JSON.stringify(userTracking)
+    await this.redisService.expire(redisKey, 86400); // 1 day = 86400 seconds
     return userTracking;
   }
 
@@ -77,29 +64,8 @@ export class UserTrackingService {
     const insertedRecords: any = await model.insertMany(dtos);
 
     // Run Redis and socket tasks in background
-    this.handleRedisAndSocketAsync(insertedRecords);
+    this.pushToRedis(insertedRecords);
     return insertedRecords;
-  }
-
-  async getSingleEntryByQuery(query: any, tenantId: string) {
-    const model = this.getModel(tenantId);
-    let { userId, withFullAddress } = query;
-    console.log("userId", userId);
-    const whereCondition: any = {
-      ...commonFunctions.appendIfValid("userId", userId),
-    };
-    let latestEntry = await model
-      .findOne(whereCondition)
-      .sort({ createdAt: -1 })
-      .lean();
-    if (withFullAddress && latestEntry) {
-      const address = await commonFunctions.getFullAddressByLatLong(
-        latestEntry.lat,
-        latestEntry.long
-      );
-      latestEntry["fullAddress"] = address;
-    }
-    return latestEntry;
   }
 
   async findAll(tenantId: string, query: any): Promise<UserTracking[]> {
@@ -114,7 +80,7 @@ export class UserTrackingService {
     const redisKey = workDaySessionId
       ? `user_tracking:${userId}:${workDaySessionId}`
       : null;
-
+    console.log("redisKey", redisKey);
     // Try Redis if session ID is available
     if (redisKey) {
       const redisData = await this.redisService.lrange(redisKey, 0, -1);

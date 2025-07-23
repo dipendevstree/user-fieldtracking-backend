@@ -15,9 +15,8 @@ import { ApiTags, ApiBearerAuth, ApiQuery } from "@nestjs/swagger";
 import { JwtAuthGuard } from "src/modules/auth/jwt-auth.guard";
 import { RolesGuard } from "src/modules/auth/role-auth-guard";
 import { commonResponse } from "helper";
-import moment from "moment-timezone";
 import { CreateMultipleUserTrackingDto } from "./dtos/create-multiple-user-tracking.dto";
-
+import moment from "moment-timezone";
 @ApiTags("UserTracking")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -139,44 +138,6 @@ export class UserTrackingController {
     );
   }
 
-  @Get("last-lot-long/:userId")
-  @ApiQuery({
-    name: "withFullAddress",
-    required: false,
-    type: Boolean,
-    example: true,
-    description:
-      "Whether to include latitude and longitude data in the response",
-  })
-  async lastLangLong(
-    @Param("userId") userId: string,
-    @Req() req,
-    @Res() res: Response
-  ) {
-    try {
-      const tenantId = req.user?.schemaName;
-      console.log("userId", userId);
-      req.query["organizationId"] = req.user.organizationID;
-      req.query["timeZone"] = req.user.timeZone;
-      req.query["userId"] = userId;
-
-      let result = await this.userTrackingService.getSingleEntryByQuery(
-        req.query,
-        tenantId
-      );
-
-      return commonResponse.success(
-        "en",
-        res,
-        "USER_TRACKING_DETAILS",
-        201,
-        result
-      );
-    } catch (error) {
-      console.log("errorerrorerror", error);
-    }
-  }
-
   @Get("user/:userId")
   @ApiQuery({
     name: "startDate",
@@ -199,23 +160,12 @@ export class UserTrackingController {
     example: "uuid",
     description: "Filer by workDaySessionId",
   })
-  async findByUserId(
-    @Param("userId") userId: string,
-    @Req() req,
-    @Res() res: Response
-  ) {
+  async findByUserId(@Param("userId") userId: string, @Req() req) {
     const tenantId = req.user?.schemaName;
     req.query["organizationId"] = req.user.organizationID;
     req.query["timeZone"] = req.user.timeZone;
     req.query["userId"] = userId;
-    let result = await this.userTrackingService.findAll(tenantId, req.query);
-    return commonResponse.success(
-      "en",
-      res,
-      "USER_TRACKING_LIST_SUCCESS",
-      201,
-      result
-    );
+    return this.userTrackingService.findAll(tenantId, req.query);
   }
 
   @Delete()
