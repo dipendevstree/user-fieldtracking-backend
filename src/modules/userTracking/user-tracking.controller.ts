@@ -90,7 +90,8 @@ export class UserTrackingController {
     }
     const result = await this.userTrackingService.createMultiple(
       latLongArray,
-      schemaName
+      schemaName,
+      date
     );
     return commonResponse.success(
       "en",
