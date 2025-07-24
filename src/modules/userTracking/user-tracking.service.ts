@@ -71,6 +71,32 @@ export class UserTrackingService {
     return insertedRecords;
   }
 
+  async getSingleEntryByQuery(query: any, tenantId: string) {
+    const model = this.getModel(tenantId);
+    let { userId, withFullAddress, timeZone, startDate, endDate } = query;
+    const whereCondition: any = {
+      ...commonFunctions.appendIfValid("userId", userId),
+    };
+    if (startDate && endDate) {
+      whereCondition.date = {
+        $gte: moment.tz(startDate, timeZone).startOf("day").toDate(),
+        $lte: moment.tz(endDate, timeZone).endOf("day").toDate(),
+      };
+    }
+    let latestEntry = await model
+      .findOne(whereCondition)
+      .sort({ createdAt: -1 })
+      .lean();
+    if (withFullAddress && latestEntry) {
+      const address = await commonFunctions.getFullAddressByLatLong(
+        latestEntry.lat,
+        latestEntry.long
+      );
+      latestEntry["fullAddress"] = address;
+    }
+    return latestEntry;
+  }
+
   async findAll(tenantId: string, query: any): Promise<UserTracking[]> {
     const {
       timeZone,

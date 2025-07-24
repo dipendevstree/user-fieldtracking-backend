@@ -102,6 +102,64 @@ export class UserTrackingController {
     );
   }
 
+  @Get("last-lot-long/:userId")
+  @ApiQuery({
+    name: "withFullAddress",
+    required: false,
+    type: Boolean,
+    example: true,
+    description:
+      "Whether to include latitude and longitude data in the response",
+  })
+  @ApiQuery({
+    name: "timeZone",
+    required: false,
+    type: String,
+    description: "timeZone",
+  })
+  @ApiQuery({
+    name: "endDate",
+    required: false,
+    type: String,
+    example: "2025-01-31",
+    description: "Visit end date",
+  })
+  @ApiQuery({
+    name: "startDate",
+    required: false,
+    type: String,
+    example: "2025-01-01",
+    description: "Visit start date",
+  })
+  async lastLangLong(
+    @Param("userId") userId: string,
+    @Req() req,
+    @Res() res: Response
+  ) {
+    try {
+      const tenantId = req.user?.schemaName;
+      console.log("userId", userId);
+      req.query["organizationId"] = req.user.organizationID;
+      req.query["timeZone"] = req.user.timeZone;
+      req.query["userId"] = userId;
+
+      let result = await this.userTrackingService.getSingleEntryByQuery(
+        req.query,
+        tenantId
+      );
+
+      return commonResponse.success(
+        "en",
+        res,
+        "USER_TRACKING_DETAILS",
+        201,
+        result
+      );
+    } catch (error) {
+      console.log("errorerrorerror", error);
+    }
+  }
+
   @Get("/list")
   @ApiQuery({
     name: "endDate",
