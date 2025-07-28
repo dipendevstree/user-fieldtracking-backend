@@ -84,6 +84,7 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
       ...data,
       timestamp: new Date().toISOString(),
     };
+    if (payload.lat == 37.4219983 && payload.long == -122.084) return;
     const roomInfo = this.server.sockets.adapter.rooms.get(room);
     const numberOfClients = roomInfo ? roomInfo.size : 0;
 

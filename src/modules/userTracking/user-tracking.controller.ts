@@ -58,15 +58,19 @@ export class UserTrackingController {
         const latitude = element?.coords?.latitude;
         const longitude = element?.coords?.longitude;
         if (latitude != null && longitude != null) {
-          latLongArray.push({
-            workDaySessionId: workDaySessionId,
-            userId: req.user.id,
-            organizationId: req.user.organizationID,
-            speed: element?.coords?.speed,
-            date: moment.utc(date, "DD-MM-YYYY").startOf("day").toDate(),
-            lat: latitude,
-            long: longitude,
-          });
+          if (latitude == 37.4219983 && longitude == -122.084) {
+            continue;
+          } else {
+            latLongArray.push({
+              workDaySessionId: workDaySessionId,
+              userId: req.user.id,
+              organizationId: req.user.organizationID,
+              speed: element?.coords?.speed,
+              date: moment.utc(date, "DD-MM-YYYY").startOf("day").toDate(),
+              lat: latitude,
+              long: longitude,
+            });
+          }
         } else {
           console.log("Invalid coordinates in element:", element);
         }
@@ -75,15 +79,19 @@ export class UserTrackingController {
       const latitude = location?.coords?.latitude;
       const longitude = location?.coords?.longitude;
       if (latitude != null && longitude != null) {
-        latLongArray.push({
-          workDaySessionId: workDaySessionId,
-          userId: req.user.id,
-          organizationId: req.user.organizationID,
-          speed: location?.coords?.speed,
-          date: moment.utc(date, "DD-MM-YYYY").startOf("day").toDate(),
-          lat: latitude,
-          long: longitude,
-        });
+        if (latitude == 37.4219983 && longitude == -122.084) {
+          return;
+        } else {
+          latLongArray.push({
+            workDaySessionId: workDaySessionId,
+            userId: req.user.id,
+            organizationId: req.user.organizationID,
+            speed: location?.coords?.speed,
+            date: moment.utc(date, "DD-MM-YYYY").startOf("day").toDate(),
+            lat: latitude,
+            long: longitude,
+          });
+        }
       } else {
         console.log("Invalid single location:", location);
       }
