@@ -114,9 +114,9 @@ export class UserTrackingService {
       startDateFormatted == endDateFormatted
         ? `user_tracking:${userId}:${startDateFormatted}`
         : null;
-    console.log("redisKey", redisKey);
+    console.log("redisKey", redisKey, startDate);
     // Try Redis if session ID is available
-    if (redisKey) {
+    if (redisKey && startDate) {
       const redisData = await this.redisService.lrange(redisKey, 0, -1);
       console.log("redisData1231313112", redisData.length);
       if (redisData?.length) return redisData;
@@ -134,6 +134,7 @@ export class UserTrackingService {
         $lte: moment.tz(endDate, timeZone).endOf("day").toDate(),
       };
     }
+    console.log("whereCondition", whereCondition);
     return await model.find(whereCondition).sort({ createdAt: -1 });
   }
 
