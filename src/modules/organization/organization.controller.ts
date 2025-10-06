@@ -21,32 +21,11 @@ import { UpdateOrgDto } from "./dtos/update-organization.dto";
 import { UsersService } from "../users/user.service";
 import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 import { RolesGuard } from "../auth/role-auth-guard";
-import { RoleService } from "../role/role.service";
-import { OrganizationMenuService } from "../organizationMenu/organizationMenu.service";
-import { PermissionService } from "../permission/permission.service";
-import { MenuService } from "../menu/menu.service";
-import { Role } from "../role/role.entity";
-import { OrganizationMenu } from "../organizationMenu/organizationMenu.entity";
-import { Permission } from "../permission/permission.entity";
-import { Menu } from "../menu/menu.entity";
 import { Organization } from "./organization.entity";
 import { SuperAdmin } from "../superAdmin/superAdmin.entity";
-import { EmployeeRang } from "../employeeRang/employeeRang.entity";
-import { Industry } from "../industry/industry.entity";
 import { MailerService } from "@nestjs-modules/mailer";
 import { JwtService } from "@nestjs/jwt";
 import { USER_STATUS } from "helper/constants";
-import { UserTerritory } from "../userTerritory/userTerritory.entity";
-import { CustomerType } from "../customerType/customerType.entity";
-import { Customer } from "../customer/customer.entity";
-import { CustomerContact } from "../customerContact/customerContact.entity";
-import { Department } from "../department/department.entity";
-import { OrganizationType } from "../organizationType/organizationType.entity";
-import { LiveTracking } from "../liveTracking/liveTracking.entity";
-import { Visit } from "../visit/visit.entity";
-import { WorkDaySession } from "../workDaySession/workDaySession.entity";
-import { WorkBreakSession } from "../workBreakSession/workBreakSession.entity";
-
 @Controller("organization")
 @ApiBearerAuth()
 @ApiTags("Organization")
@@ -55,10 +34,10 @@ export class OrganizationController {
     private readonly organizationService: OrganizationService,
     private readonly usersService: UsersService,
     private readonly dataSource: DataSource,
-    private readonly roleService: RoleService,
-    private readonly organizationMenuService: OrganizationMenuService,
-    private readonly permissionService: PermissionService,
-    private readonly menuService: MenuService,
+    // private readonly roleService: RoleService,
+    // private readonly organizationMenuService: OrganizationMenuService,
+    // private readonly permissionService: PermissionService,
+    // private readonly menuService: MenuService,
     private readonly jwtService: JwtService,
     private readonly mailerService: MailerService
   ) {}
@@ -124,97 +103,97 @@ export class OrganizationController {
 
     return nestedMenus;
   }
-  async createOrganizationMenusWithPermissions(
-    menuIds: string[],
-    organizationId: string,
-    adminUserId: string,
-    adminRoleId: string,
-    schemaName: string
-  ): Promise<void> {
-    // Step 1: Fetch all master menus
-    let masterMenus: any[] = [];
-    for (const menuId of menuIds || []) {
-      const masterMenu = await this.menuService.getMenuById(menuId);
-      if (masterMenu) {
-        masterMenus.push(masterMenu);
-      }
-    }
+  // async createOrganizationMenusWithPermissions(
+  //   menuIds: string[],
+  //   organizationId: string,
+  //   adminUserId: string,
+  //   adminRoleId: string,
+  //   schemaName: string
+  // ): Promise<void> {
+  //   // Step 1: Fetch all master menus
+  //   let masterMenus: any[] = [];
+  //   for (const menuId of menuIds || []) {
+  //     const masterMenu = await this.menuService.getMenuById(menuId);
+  //     if (masterMenu) {
+  //       masterMenus.push(masterMenu);
+  //     }
+  //   }
 
-    // Step 2: Nest the master menus
-    const nestedMenus = this.nestMenus(masterMenus);
+  //   // Step 2: Nest the master menus
+  //   const nestedMenus = this.nestMenus(masterMenus);
 
-    // Step 3: Recursive menu and permission creation
-    const createMenusRecursively = async (
-      menus: any[],
-      parentOrganizationMenuId: string | null = null
-    ) => {
-      for (const menu of menus) {
-        const createdMenu = await this.organizationMenuService.create(
-          {
-            menuName: menu.menuName,
-            parentMenuId: parentOrganizationMenuId,
-            menuKey: menu.menuKey,
-            masterMenuId: menu.menuId,
-            organizationId,
-            createdBy: adminUserId,
-            isActive: menu.isActive,
-          },
-          schemaName
-        );
+  //   // Step 3: Recursive menu and permission creation
+  //   const createMenusRecursively = async (
+  //     menus: any[],
+  //     parentOrganizationMenuId: string | null = null
+  //   ) => {
+  //     for (const menu of menus) {
+  //       const createdMenu = await this.organizationMenuService.create(
+  //         {
+  //           menuName: menu.menuName,
+  //           parentMenuId: parentOrganizationMenuId,
+  //           menuKey: menu.menuKey,
+  //           masterMenuId: menu.menuId,
+  //           organizationId,
+  //           createdBy: adminUserId,
+  //           isActive: menu.isActive,
+  //         },
+  //         schemaName
+  //       );
 
-        await this.permissionService.createPermission(
-          {
-            organizationMenuId: createdMenu.organizationMenuId,
-            roleId: adminRoleId,
-            organizationId,
-            add: true,
-            viewOwn: true,
-            viewGlobal: true,
-            edit: true,
-            delete: true,
-            createdBy: adminUserId,
-          },
-          schemaName
-        );
+  //       await this.permissionService.createPermission(
+  //         {
+  //           organizationMenuId: createdMenu.organizationMenuId,
+  //           roleId: adminRoleId,
+  //           organizationId,
+  //           add: true,
+  //           viewOwn: true,
+  //           viewGlobal: true,
+  //           edit: true,
+  //           delete: true,
+  //           createdBy: adminUserId,
+  //         },
+  //         schemaName
+  //       );
 
-        if (menu.children?.length) {
-          await createMenusRecursively(
-            menu.children,
-            createdMenu.organizationMenuId
-          );
-        }
-      }
-    };
+  //       if (menu.children?.length) {
+  //         await createMenusRecursively(
+  //           menu.children,
+  //           createdMenu.organizationMenuId
+  //         );
+  //       }
+  //     }
+  //   };
 
-    await createMenusRecursively(nestedMenus);
-  }
+  //   await createMenusRecursively(nestedMenus);
+  // }
   async deleteOrganizationMenusWithPermissions(
     menuIds: string[],
     organizationId: string,
 
     schemaName: string
   ): Promise<void> {
-    for (const menuId of menuIds || []) {
-      let getOrgMenu = await this.organizationMenuService.getAll(
-        { masterMenuId: menuId, organizationId: organizationId },
-        schemaName
-      );
-      console.log("getOrgMenufafafafa", getOrgMenu);
-      if (getOrgMenu?.list?.length) {
-        for (const orgMenu of getOrgMenu.list) {
-          await this.permissionService.deleteByQuery(
-            {
-              organizationMenuId: orgMenu.organizationMenuId,
-            },
-            schemaName
-          );
-          await this.organizationMenuService.delete(
-            orgMenu.organizationMenuId,
-            schemaName
-          );
-        }
-      }
-    }
+    // for (const menuId of menuIds || []) {
+      // let getOrgMenu = await this.organizationMenuService.getAll(
+      //   { masterMenuId: menuId, organizationId: organizationId },
+      //   schemaName
+      // );
+      // console.log("getOrgMenufafafafa", getOrgMenu);
+      // if (getOrgMenu?.list?.length) {
+      //   for (const orgMenu of getOrgMenu.list) {
+      //     // await this.permissionService.deleteByQuery(
+      //     //   {
+      //     //     organizationMenuId: orgMenu.organizationMenuId,
+      //     //   },
+      //     //   schemaName
+      //     // );
+      //     await this.organizationMenuService.delete(
+      //       orgMenu.organizationMenuId,
+      //       schemaName
+      //     );
+      //   }
+      // }
+    // }
   }
 
   @Post("/create")
@@ -296,22 +275,22 @@ export class OrganizationController {
             User,
             Organization,
             SuperAdmin,
-            EmployeeRang,
-            Industry,
-            Menu,
-            Role,
-            OrganizationMenu,
-            Department,
-            OrganizationType,
-            Permission,
-            UserTerritory,
-            CustomerType,
-            Customer,
-            CustomerContact,
-            LiveTracking,
-            Visit,
-            WorkDaySession,
-            WorkBreakSession,
+            // EmployeeRang,
+            // Industry,
+            // Menu,
+            // Role,
+            // OrganizationMenu,
+            // Department,
+            // OrganizationType,
+            // Permission,
+            // UserTerritory,
+            // CustomerType,
+            // Customer,
+            // CustomerContact,
+            // LiveTracking,
+            // Visit,
+            // WorkDaySession,
+            // WorkBreakSession,
           ],
           synchronize: true, // automatically creates table from entity
         });
@@ -319,15 +298,15 @@ export class OrganizationController {
       }
 
       // Step 4: Create role for the organization
-      let adminRole = await this.roleService.create(
-        {
-          roleName: "admin",
-          isActive: true,
-          organizationID: organization?.organizationID,
-          superAdminCreatedBy: req.user.id,
-        },
-        schemaName
-      );
+      // let adminRole = await this.roleService.create(
+      //   {
+      //     roleName: "admin",
+      //     isActive: true,
+      //     organizationID: organization?.organizationID,
+      //     superAdminCreatedBy: req.user.id,
+      //   },
+      //   schemaName
+      // );
 
       // Step 5: Create admin user
       let adminUser = await this.usersService.createUser(
@@ -340,7 +319,7 @@ export class OrganizationController {
           jobTitle: createOrgDto?.adminJobTitle,
           organizationID: organization?.organizationID,
           phoneNumber: createOrgDto?.adminPhone,
-          roleId: adminRole.roleId,
+          // roleId: adminRole.roleId,
           status: USER_STATUS.CREATED,
           schemaName: schemaName,
           countryCode: createOrgDto.adminPhoneCountryCode,
@@ -353,13 +332,13 @@ export class OrganizationController {
       this.sendAdminEmail(adminUser, organization, schemaName);
 
       // Step 7: Create default menu and permissions.
-      this.createOrganizationMenusWithPermissions(
-        createOrgDto?.menuIds,
-        organization.organizationID,
-        adminUser.id,
-        adminRole.roleId,
-        schemaName
-      );
+      // this.createOrganizationMenusWithPermissions(
+      //   createOrgDto?.menuIds,
+      //   organization.organizationID,
+      //   adminUser.id,
+      //   adminRole.roleId,
+      //   schemaName
+      // );
 
       return commonResponse.success(
         "en",
@@ -525,13 +504,13 @@ export class OrganizationController {
         organization.organizationSchema
       );
       if (newIds.length > 0) {
-        this.createOrganizationMenusWithPermissions(
-          newIds,
-          organization.organizationID,
-          adminUser.id,
-          adminUser.roleId,
-          organization.organizationSchema
-        );
+        // this.createOrganizationMenusWithPermissions(
+        //   newIds,
+        //   organization.organizationID,
+        //   adminUser.id,
+        //   adminUser.roleId,
+        //   organization.organizationSchema
+        // );
       }
       if (deletedIds.length > 0) {
         this.deleteOrganizationMenusWithPermissions(

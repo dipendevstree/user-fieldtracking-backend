@@ -13,24 +13,6 @@ import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { LanguageMiddleware } from "./middleware/language.middleware";
 import { AppConfigService } from "./config/app/config.service";
-// import { SuperAdminModule } from "./modules/superAdmin/superAdmin.module";
-// import { EmployeeRangModule } from "./modules/employeeRang/employeeRang.module";
-// import { IndustryModule } from "./modules/industry/industry.module";
-// import { MenuModule } from "./modules/menu/menu.module";
-// import { OrganizationModule } from "./modules/organization/organization.module";
-// import { RoleModule } from "./modules/role/role.module";
-// import { PermissionModule } from "./modules/permission/permission.module";
-// import { OrganizationMenuModule } from "./modules/organizationMenu/organizationMenu.module";
-// import { DepartmentModule } from "./modules/department/department.module";
-// import { OrganizationTypeModule } from "./modules/organizationType/organizationType.module";
-// import { UserTerritoryModule } from "./modules/userTerritory/userTerritory.module";
-// import { CustomerTypeModule } from "./modules/customerType/customerType.module";
-// import { CustomerContactModule } from "./modules/customerContact/customerContact.module";
-// import { CustomerModule } from "./modules/customer/customer.module";
-// import { LiveTrackingModule } from "./modules/liveTracking/liveTracking.module";
-// import { VisitModule } from "./modules/visit/visit.module";
-// import { WorkDaySessionModule } from "./modules/workDaySession/workDaySession.module";
-// import { WorkBreakSessionModule } from "./modules/workBreakSession/workBreakSession.module";
 import { MongooseModule } from "@nestjs/mongoose";
 import { UserTrackingModule } from "./modules/userTracking/user-tracking.module";
 import { SocketModule } from "./modules/socket/socket.module";
@@ -54,7 +36,7 @@ import { RedisModule } from "./modules/redis/redis.module";
         database: postgresConfigService.db_name,
         // autoLoadEntities: true,
         // entities: [__dirname + "/modules/**/*.entity{.ts,.js}"], // <-- update this line
-        // synchronize: true,
+        // synchronize: false,
       }),
       inject: [PostgresConfigService],
     }),
@@ -85,7 +67,6 @@ import { RedisModule } from "./modules/redis/redis.module";
     UserTrackingModule,
     SocketModule,
     RedisModule,
-    PostgresDatabaseProviderModule,
   ],
   controllers: [AppController],
   providers: [AppService, AppConfigService],
