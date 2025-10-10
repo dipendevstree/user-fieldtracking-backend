@@ -228,6 +228,7 @@ export class UserTrackingController {
     description: "Filer by workDaySessionId",
   })
   async findByUserId(@Param("userId") userId: string, @Req() req) {
+    console.log("findByUserId", userId);
     const tenantId = req.user?.schemaName;
     req.query["organizationId"] = req.user.organizationID;
     req.query["timeZone"] = req.user.timeZone;
