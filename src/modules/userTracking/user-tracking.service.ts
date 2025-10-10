@@ -118,6 +118,7 @@ export class UserTrackingService {
       console.log("redisKey", redisKey, startDate);
       // Try Redis if session ID is available
       if (redisKey && startDate) {
+        console.log("redisKey12121221212121", redisKey);
         const redisData = await this.redisService.lrange(redisKey, 0, -1);
         console.log("redisData1231313112", redisData.length);
         if (redisData?.length) return redisData;
