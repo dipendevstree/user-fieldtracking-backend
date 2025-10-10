@@ -107,15 +107,17 @@ export class UserTrackingService {
         startDate,
         endDate,
       } = query;
+      console.log("query", query);
       let startDateFormatted = moment
         .tz(startDate, timeZone)
         .format("DD-MM-YYYY");
       let endDateFormatted = moment.tz(endDate, timeZone).format("DD-MM-YYYY");
+
       const redisKey =
         startDateFormatted == endDateFormatted
           ? `user_tracking:${userId}:${startDateFormatted}`
           : null;
-      console.log("redisKey", redisKey, startDate);
+      console.log("redisKey1122211211111", redisKey, startDate);
       // Try Redis if session ID is available
       if (redisKey && startDate) {
         console.log("redisKey12121221212121", redisKey);
