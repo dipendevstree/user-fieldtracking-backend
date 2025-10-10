@@ -10,9 +10,9 @@ import {
   JoinTable,
   DeleteDateColumn,
 } from "typeorm";
-import { Organization } from "../organization/organization.entity";
+// import { Organization } from "../organization/organization.entity";
 import { USER_STATUS } from "helper/constants";
-import { SuperAdmin } from "../superAdmin/superAdmin.entity";
+// import { SuperAdmin } from "../superAdmin/superAdmin.entity";
 
 @Entity("user")
 export class User {
@@ -98,9 +98,9 @@ export class User {
 
   // Relations
 
-  @ManyToOne(() => Organization, (organization) => organization.users)
-  @JoinColumn({ name: "organizationID" })
-  organization: Organization;
+  // @ManyToOne(() => Organization, (organization) => organization.users)
+  // @JoinColumn({ name: "organizationID" })
+  // organization: Organization;
 
   @ManyToMany(() => User, (user) => user.reportingUsers)
   @JoinTable({
@@ -119,7 +119,7 @@ export class User {
   @ManyToMany(() => User, (user) => user.reportingTo)
   reportingUsers: User[];
 
-  @ManyToOne(() => SuperAdmin, (superAdmin) => superAdmin.user)
-  @JoinColumn({ name: "superAdminCreatedBy" })
-  superAdminCreatedByData: SuperAdmin;
+  // @ManyToOne(() => SuperAdmin, (superAdmin) => superAdmin.user)
+  // @JoinColumn({ name: "superAdminCreatedBy" })
+  // superAdminCreatedByData: SuperAdmin;
 }

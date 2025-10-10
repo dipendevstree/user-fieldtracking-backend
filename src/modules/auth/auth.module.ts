@@ -6,14 +6,14 @@ import { AuthService } from "./auth.service";
 import { AuthController } from "./auth.controller";
 import { JwtStrategy } from "./jwt.strategy";
 import { ConfigModule, ConfigService } from "@nestjs/config";
-import { SuperAdminModule } from "../superAdmin/superAdmin.module";
-import { OrganizationModule } from "../organization/organization.module";
+// import { SuperAdminModule } from "../superAdmin/superAdmin.module";
+// import { OrganizationModule } from "../organization/organization.module";
 
 @Module({
   imports: [
     forwardRef(() => UsersModule),
-    forwardRef(() => SuperAdminModule),
-    forwardRef(() => OrganizationModule),
+    // forwardRef(() => SuperAdminModule),
+    // forwardRef(() => OrganizationModule),
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
