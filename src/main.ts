@@ -5,7 +5,7 @@ import { json, urlencoded } from "body-parser";
 import { ResponseInterceptor } from "./interceptors/response.interceptor";
 import { CustomExceptionFilter } from "./exceptions.filter";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
-import { PostgresConfigService } from "./config/postgres/config.service";
+// import { PostgresConfigService } from "./config/postgres/config.service";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -13,7 +13,7 @@ async function bootstrap() {
     cors: true,
   });
 
-  const appConfig = app.get(PostgresConfigService);
+  // const appConfig = app.get(PostgresConfigService);
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -55,7 +55,7 @@ async function bootstrap() {
     },
   });
 
-  const port = appConfig.port;
+  const port = process.env.PORT || 4002 // appConfig.port;
 
   await app.listen(port);
   console.log(`Application is running ▶️ http://localhost:${port}`);
