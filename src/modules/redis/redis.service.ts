@@ -64,8 +64,13 @@ export class RedisService implements OnModuleDestroy {
 
   // Redis List Range (read all tracking data for a key)
   async lrange<T = any>(key: string, start = 0, stop = -1): Promise<T[]> {
-    const items = await this.client.lRange(key, start, stop);
-    return items.map((item) => JSON.parse(item));
+    try {
+      const items = await this.client.lRange(key, start, stop);
+      return items.map((item) => JSON.parse(item));
+    } catch (error) {
+      console.error("Error fetching data from Redis:", error);
+      return [];
+    }
   }
 
   // Optional TTL for keys (expire after N seconds)
