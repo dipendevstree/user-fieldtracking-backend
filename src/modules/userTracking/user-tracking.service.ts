@@ -98,44 +98,48 @@ export class UserTrackingService {
   }
 
   async findAll(tenantId: string, query: any): Promise<UserTracking[]> {
-    const {
-      timeZone,
-      workDaySessionId,
-      userId,
-      organizationId,
-      startDate,
-      endDate,
-    } = query;
-    let startDateFormatted = moment
-      .tz(startDate, timeZone)
-      .format("DD-MM-YYYY");
-    let endDateFormatted = moment.tz(endDate, timeZone).format("DD-MM-YYYY");
-    const redisKey =
-      startDateFormatted == endDateFormatted
-        ? `user_tracking:${userId}:${startDateFormatted}`
-        : null;
-    console.log("redisKey", redisKey, startDate);
-    // Try Redis if session ID is available
-    if (redisKey && startDate) {
-      const redisData = await this.redisService.lrange(redisKey, 0, -1);
-      console.log("redisData1231313112", redisData.length);
-      if (redisData?.length) return redisData;
-    }
-    // Fallback to DB
-    const model = this.getModel(tenantId);
-    const whereCondition: any = {
-      organizationId,
-      ...commonFunctions.appendIfValid("workDaySessionId", workDaySessionId),
-      ...commonFunctions.appendIfValid("userId", userId),
-    };
-    if (startDate && endDate) {
-      whereCondition.date = {
-        $gte: moment.tz(startDate, timeZone).startOf("day").toDate(),
-        $lte: moment.tz(endDate, timeZone).endOf("day").toDate(),
+    try {
+      const {
+        timeZone,
+        workDaySessionId,
+        userId,
+        organizationId,
+        startDate,
+        endDate,
+      } = query;
+      let startDateFormatted = moment
+        .tz(startDate, timeZone)
+        .format("DD-MM-YYYY");
+      let endDateFormatted = moment.tz(endDate, timeZone).format("DD-MM-YYYY");
+      const redisKey =
+        startDateFormatted == endDateFormatted
+          ? `user_tracking:${userId}:${startDateFormatted}`
+          : null;
+      console.log("redisKey", redisKey, startDate);
+      // Try Redis if session ID is available
+      if (redisKey && startDate) {
+        const redisData = await this.redisService.lrange(redisKey, 0, -1);
+        console.log("redisData1231313112", redisData.length);
+        if (redisData?.length) return redisData;
+      }
+      // Fallback to DB
+      const model = this.getModel(tenantId);
+      const whereCondition: any = {
+        organizationId,
+        ...commonFunctions.appendIfValid("workDaySessionId", workDaySessionId),
+        ...commonFunctions.appendIfValid("userId", userId),
       };
+      if (startDate && endDate) {
+        whereCondition.date = {
+          $gte: moment.tz(startDate, timeZone).startOf("day").toDate(),
+          $lte: moment.tz(endDate, timeZone).endOf("day").toDate(),
+        };
+      }
+      console.log("whereCondition", whereCondition);
+      return await model.find(whereCondition).sort({ createdAt: -1 });
+    } catch (error) {
+      console.log("errrrrorrr", error);
     }
-    console.log("whereCondition", whereCondition);
-    return await model.find(whereCondition).sort({ createdAt: -1 });
   }
 
   async deleteAll(tenantId: string): Promise<{ deletedCount?: number }> {
