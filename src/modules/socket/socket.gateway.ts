@@ -12,14 +12,14 @@ import { forwardRef, Inject, Injectable, Logger } from "@nestjs/common";
 import { UserTrackingService } from "../userTracking/user-tracking.service";
 
 @Injectable()
-@WebSocketGateway({
-  cors: {
-    origin: "*",
-    methods: ["GET", "POST"],
-  },
-  maxHttpBufferSize: 2e6,
-  upgrades: ["websocket"],
-})
+// @WebSocketGateway({
+//   cors: {
+//     origin: "*",
+//     methods: ["GET", "POST"],
+//   },
+//   maxHttpBufferSize: 2e6,
+//   upgrades: ["websocket"],
+// })
 export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     @Inject(forwardRef(() => UserTrackingService))
