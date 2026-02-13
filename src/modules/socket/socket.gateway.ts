@@ -18,7 +18,8 @@ import { UserTrackingService } from "../userTracking/user-tracking.service";
     methods: ["GET", "POST"],
   },
   maxHttpBufferSize: 2e6,
-  upgrades: ["websocket"],
+  transports: ["websocket"],
+  path: "/socket.io",
 })
 export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
