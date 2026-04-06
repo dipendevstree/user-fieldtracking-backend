@@ -200,10 +200,6 @@ export class UserTrackingController {
 
     // Normalize payload to an array format
     let rawLocations = [];
-    console.log(
-      "🚀 🚀  ~~~~ user-tracking.controller.ts:203 ~~~~ UserTrackingController ~~~~ rawLocations🚀 🚀 :",
-      rawLocations,
-    );
 
     if (Array.isArray(location)) {
       rawLocations = location;
@@ -216,6 +212,11 @@ export class UserTrackingController {
 
     for (let i = 0; i < rawLocations.length; i++) {
       const loc = rawLocations[i];
+      console.log(
+        "🚀 🚀  ~~~~ user-tracking.controller.ts:219 ~~~~ UserTrackingController ~~~~ loc🚀 🚀 :",
+        loc,
+      );
+
       const coords = loc?.coords;
 
       if (coords?.latitude != null && coords?.longitude != null) {
