@@ -200,6 +200,11 @@ export class UserTrackingController {
 
     // Normalize payload to an array format
     let rawLocations = [];
+    console.log(
+      "🚀 🚀  ~~~~ user-tracking.controller.ts:203 ~~~~ UserTrackingController ~~~~ rawLocations🚀 🚀 :",
+      rawLocations,
+    );
+
     if (Array.isArray(location)) {
       rawLocations = location;
     } else if (location && location.coords) {
