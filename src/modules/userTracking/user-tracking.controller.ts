@@ -197,6 +197,10 @@ export class UserTrackingController {
   ) {
     const schemaName = req.user.schemaName;
     let { location, workDaySessionId, date } = body;
+    console.log(
+      "🚀 🚀  ~~~~ user-tracking.controller.ts:200 ~~~~ UserTrackingController ~~~~ location🚀 🚀 :",
+      location.length,
+    );
 
     // Normalize payload to an array format
     let rawLocations = [];
@@ -288,6 +292,10 @@ export class UserTrackingController {
       lat: point.lat,
       long: point.long,
     }));
+    console.log(
+      "🚀 🚀  ~~~~ user-tracking.controller.ts:293 ~~~~ UserTrackingController ~~~~ latLongArray🚀 🚀 :",
+      latLongArray.length,
+    );
 
     if (latLongArray.length === 0) {
       // If all points were garbage, simply return success without saving bad data
@@ -300,6 +308,10 @@ export class UserTrackingController {
       );
     }
 
+    console.log(
+      "🚀 🚀  ~~~~ user-tracking.controller.ts:292 ~~~~ UserTrackingController ~~~~ latLongArray.length🚀 🚀 :",
+      latLongArray.length,
+    );
     // DB Insert
     const result = await this.userTrackingService.createMultiple(
       latLongArray,
