@@ -5,13 +5,13 @@ import { UsersService } from "./user.service";
 import { UsersController } from "./user.controller";
 import { AuthModule } from "../auth/auth.module";
 import { JwtService } from "@nestjs/jwt";
-import { OrganizationModule } from "../organization/organization.module";
+// import { OrganizationModule } from "../organization/organization.module";
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User]),
+    // TypeOrmModule.forFeature([User]),
     AuthModule,
-    forwardRef(() => OrganizationModule),
+    // forwardRef(() => OrganizationModule),
   ],
   controllers: [UsersController],
   providers: [UsersService, JwtService],

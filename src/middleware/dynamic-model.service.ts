@@ -1,9 +1,12 @@
-// src/common/utils/mongoose-tenant.util.ts
-import { Connection, Model, Schema } from "mongoose";
-import { InjectConnection } from "@nestjs/mongoose";
 import { Injectable } from "@nestjs/common";
+import { InjectConnection } from "@nestjs/mongoose";
+import { Connection, Schema, Model } from "mongoose";
 
-const modelCache: Map<string, Model<any>> = new Map();
+/**
+ * Caches dynamically created tenant models so we don't
+ * re-register the same schema for each tenant repeatedly.
+ */
+const modelCache = new Map<string, Model<any>>();
 
 @Injectable()
 export class GetModelForCompany {
@@ -13,30 +16,28 @@ export class GetModelForCompany {
   ) {}
 
   /**
-   * Returns a tenant-specific collection (model)
-   * @param baseModelName - e.g., 'Customer'
-   * @param schema - The schema definition
-   * @param tenantId - e.g., 'tenant1'
+   * Returns a tenant-specific model instance bound to its own collection.
+   *
+   * Example:
+   *   const customerModel = getModelForTenant('Customer', schema, 'tenantA');
    */
-  getModelForTenant<T>(
+  getModelForTenant<T = any>(
     baseModelName: string,
     schema: Schema,
     tenantId: string
-  ): Model<T> {
+  ): Model<any> {
+    // Lower-case collection name per tenant, e.g. "customer_tenantA"
     const collectionName = `${baseModelName.toLowerCase()}_${tenantId}`;
     const modelKey = `${baseModelName}_${tenantId}`;
 
-    if (modelCache.has(modelKey)) {
-      return modelCache.get(modelKey) as Model<T>;
-    }
+    // Reuse from cache if already registered
+    const cached = modelCache.get(modelKey);
+    if (cached) return cached;
 
-    const model = this.connection.model<T>(
-      modelKey,
-      schema,
-      collectionName // 👈 custom collection name in DB
-    );
-
+    // Create and cache new model
+    const model = this.connection.model(modelKey, schema, collectionName);
     modelCache.set(modelKey, model);
+
     return model;
   }
 }

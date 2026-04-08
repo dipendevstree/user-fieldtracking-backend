@@ -1,5 +1,11 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, IsNumber, IsString, Matches } from "class-validator";
+import {
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Matches,
+} from "class-validator";
 
 export class CreateUserTrackingDto {
   @IsString()
@@ -11,6 +17,11 @@ export class CreateUserTrackingDto {
   @IsNotEmpty()
   @ApiProperty()
   lat: number;
+
+  @IsString()
+  @IsOptional()
+  @ApiProperty()
+  speed: string;
 
   @IsNumber()
   @IsNotEmpty()

@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { forwardRef, Inject, Injectable } from "@nestjs/common";
 import { Model } from "mongoose";
 import { CreateUserTrackingDto } from "./dtos/create-user-tracking.dto";
 import {
@@ -8,12 +8,18 @@ import {
 import { GetModelForCompany } from "src/middleware/dynamic-model.service";
 import { commonFunctions } from "helper";
 import moment from "moment-timezone";
+import { RedisService } from "../redis/redis.service";
+import { SocketGateway } from "../socket/socket.gateway";
 
 @Injectable()
 export class UserTrackingService {
   private readonly baseModelName = "UserTracking";
 
-  constructor(private readonly modelUtil: GetModelForCompany) {}
+  constructor(
+    private readonly modelUtil: GetModelForCompany,
+    private readonly redisService: RedisService,
+    private readonly socketGateway: SocketGateway
+  ) {}
 
   private getModel(tenantId: string): Model<UserTracking> {
     return this.modelUtil.getModelForTenant<UserTracking>(
@@ -22,44 +28,121 @@ export class UserTrackingService {
       tenantId
     );
   }
+  private async pushToRedis(insertedRecords: any, date: string): Promise<void> {
+    for (const record of insertedRecords) {
+      let userTracking = record.toObject();
+      console.log("userTracking", userTracking);
+      this.socketGateway.emitLiveLocation(userTracking);
+      const redisKey = `user_tracking:${record.userId}:${date}`;
+      await this.redisService.lpush(redisKey, userTracking); // Optional: JSON.stringify(userTracking)
+      await this.redisService.expire(redisKey, 86400); // 1 day = 86400 seconds
+    }
+  }
 
   async create(
     dto: CreateUserTrackingDto,
     tenantId: string
-  ): Promise<UserTracking> {
-    dto["date"] = moment(dto.date, "DD-MM-YYYY").toISOString();
+  ): Promise<UserTracking | null> {
     const model = this.getModel(tenantId);
-    let response = await model.create(dto);
-    console.log("response", response);
-    return response;
+    const formattedDate = moment
+      .utc(dto.date, "DD-MM-YYYY")
+      .startOf("day")
+      .toDate();
+    // Save to DB
+    const userTracking = await model.create({ ...dto, date: formattedDate });
+    if (!userTracking) return null;
+    // Push to Redis
+    console.log("createUserTracking", userTracking);
+    const redisKey = `user_tracking:${userTracking.userId}:${dto.date}`;
+    await this.redisService.lpush(redisKey, userTracking); // Optional: JSON.stringify(userTracking)
+    await this.redisService.expire(redisKey, 86400); // 1 day = 86400 seconds
+    return userTracking;
+  }
+
+  async createMultiple(
+    dtos: any,
+    tenantId: string,
+    date: string
+  ): Promise<UserTracking[]> {
+    const model = this.getModel(tenantId);
+    const insertedRecords: any = await model.insertMany(dtos);
+    // Run Redis and socket tasks in background
+    this.pushToRedis(insertedRecords, date);
+    return insertedRecords;
+  }
+
+  async getSingleEntryByQuery(query: any, tenantId: string) {
+    const model = this.getModel(tenantId);
+    let { userId, withFullAddress, timeZone, startDate, endDate } = query;
+    const whereCondition: any = {
+      ...commonFunctions.appendIfValid("userId", userId),
+    };
+    if (startDate && endDate) {
+      whereCondition.date = {
+        $gte: moment.tz(startDate, timeZone).startOf("day").toDate(),
+        $lte: moment.tz(endDate, timeZone).endOf("day").toDate(),
+      };
+    }
+    let latestEntry = await model
+      .findOne(whereCondition)
+      .sort({ createdAt: -1 })
+      .lean();
+    if (withFullAddress && latestEntry) {
+      const address = await commonFunctions.getFullAddressByLatLong(
+        latestEntry.lat,
+        latestEntry.long
+      );
+      latestEntry["fullAddress"] = address;
+    }
+    return latestEntry;
   }
 
   async findAll(tenantId: string, query: any): Promise<UserTracking[]> {
-    let { timeZone } = query;
-    let { appendIfValid } = commonFunctions;
-    const model = this.getModel(tenantId);
-    const whereCondition: any = {
-      organizationId: query.organizationId,
-      ...appendIfValid("visitId", query.visitId),
-      ...appendIfValid("userId", query.userId),
-    };
-    if (
-      query.startDate &&
-      query.startDate != "" &&
-      query.endDate &&
-      query.endDate != ""
-    ) {
-      const startDate = moment
-        .tz(query.startDate, timeZone)
-        .startOf("day")
-        .toDate();
-      const endDate = moment.tz(query.endDate, timeZone).endOf("day").toDate();
-      whereCondition["date"] = {
-        $gte: startDate,
-        $lte: endDate,
+    try {
+      const {
+        timeZone,
+        workDaySessionId,
+        userId,
+        organizationId,
+        startDate,
+        endDate,
+      } = query;
+      console.log("query", query);
+      let startDateFormatted = moment
+        .tz(startDate, timeZone)
+        .format("DD-MM-YYYY");
+      let endDateFormatted = moment.tz(endDate, timeZone).format("DD-MM-YYYY");
+
+      const redisKey =
+        startDateFormatted == endDateFormatted
+          ? `user_tracking:${userId}:${startDateFormatted}`
+          : null;
+      console.log("redisKey1122211211111", redisKey, startDate);
+      // Try Redis if session ID is available
+      if (redisKey && startDate) {
+        console.log("redisKey12121221212121", redisKey);
+        const redisData = await this.redisService.lrange(redisKey, 0, -1);
+        console.log("redisData1231313112", redisData.length);
+        if (redisData?.length) return redisData;
+      }
+      // Fallback to DB
+      const model = this.getModel(tenantId);
+      const whereCondition: any = {
+        organizationId,
+        ...commonFunctions.appendIfValid("workDaySessionId", workDaySessionId),
+        ...commonFunctions.appendIfValid("userId", userId),
       };
+      if (startDate && endDate) {
+        whereCondition.date = {
+          $gte: moment.tz(startDate, timeZone).startOf("day").toDate(),
+          $lte: moment.tz(endDate, timeZone).endOf("day").toDate(),
+        };
+      }
+      console.log("whereCondition", whereCondition);
+      return await model.find(whereCondition).sort({ createdAt: -1 });
+    } catch (error) {
+      console.log("errrrrorrr", error);
     }
-    return await model.find(whereCondition).sort({ created_at: -1 });
   }
 
   async deleteAll(tenantId: string): Promise<{ deletedCount?: number }> {

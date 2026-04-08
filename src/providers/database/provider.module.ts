@@ -15,8 +15,8 @@ import { PostgresConfigService } from "./../../config/postgres/config.service";
                 username: postgresConfigService.db_username,
                 password: postgresConfigService.db_password,
                 database: postgresConfigService.db_name,
-                entities: [__dirname + "/../../**/*.entity{.ts,.js}"],
-                synchronize: true, // Set to false in production
+                // entities: [__dirname + "/../../**/*.entity{.ts,.js}"],
+                // synchronize: true, // Set to false in production
             }),
             inject: [PostgresConfigService],
         } as TypeOrmModuleAsyncOptions),

@@ -1,5 +1,6 @@
 "use strict";
 const bcrypt = require("bcryptjs");
+const axios = require("axios");
 Object.defineProperty(exports, "__esModule", { value: true });
 
 exports.randomSixDigit = exports.replaceNullToBlankString = void 0;
@@ -69,4 +70,22 @@ exports.decryptPassword = async (password) => {
 
 exports.comparePassword = async (enteredPassword, dbPassword) => {
   return await bcrypt.compare(enteredPassword, dbPassword);
+};
+exports.getFullAddressByLatLong = async (lat, lng) => {
+  try {
+    const response = await axios.get(
+      "https://maps.googleapis.com/maps/api/geocode/json",
+      {
+        params: {
+          latlng: `${lat},${lng}`,
+          key: process.env.GOOGLE_MAPS_API_KEY, // 👈 Make sure this is set
+        },
+      }
+    );
+    const result = response.data?.results?.[0];
+    return result?.formatted_address || "Address not found";
+  } catch (error) {
+    console.error("Reverse geocode error:", error.message);
+    return "Address lookup failed";
+  }
 };

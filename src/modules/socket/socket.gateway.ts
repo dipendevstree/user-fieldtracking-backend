@@ -8,7 +8,7 @@ import {
   ConnectedSocket,
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
-import { Injectable, Logger } from "@nestjs/common";
+import { forwardRef, Inject, Injectable, Logger } from "@nestjs/common";
 import { UserTrackingService } from "../userTracking/user-tracking.service";
 
 @Injectable()
@@ -18,10 +18,14 @@ import { UserTrackingService } from "../userTracking/user-tracking.service";
     methods: ["GET", "POST"],
   },
   maxHttpBufferSize: 2e6,
-  upgrades: ["websocket"],
+  transports: ["websocket"],
+  path: "/socket.io",
 })
 export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
-  constructor(private readonly userTrackingService: UserTrackingService) {}
+  constructor(
+    @Inject(forwardRef(() => UserTrackingService))
+    private readonly userTrackingService: UserTrackingService
+  ) {}
   private readonly logger = new Logger(SocketGateway.name);
 
   @WebSocketServer()
@@ -48,27 +52,50 @@ export class SocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
     console.log(`🔌 user_joined → Joined room: ${room}`);
   }
 
+  emitLiveLocation(data: any) {
+    const room = `web_${data.userId}`;
+    const payload = {
+      ...data,
+      timestamp: new Date().toISOString(),
+    };
+
+    try {
+      const roomInfo = this.server.sockets.adapter.rooms.get(room);
+      const numberOfClients = roomInfo ? roomInfo.size : 0;
+
+      if (numberOfClients > 0) {
+        this.server.to(room).emit("live_location", payload);
+        console.log(`📡 location_update → Sent to room: ${room}`, payload);
+      } else {
+        console.log(`⚠️ Room ${room} is empty. Skipping emit.`);
+      }
+    } catch (error) {
+      console.error("❌ Emit error:", error.message);
+    }
+  }
+
   // 📡 [MOBILE] Sends live location updates
   @SubscribeMessage("location_update")
   handleLocationUpdate(
     @MessageBody()
-    data: {
-      userId: string;
-      lat: number;
-      long: number;
-      workDaySessionId: string;
-      organizationId: string;
-      date: string;
-      schemaName: string;
-    }
+    data: any
   ) {
     const room = `web_${data.userId}`;
     const payload = {
       ...data,
       timestamp: new Date().toISOString(),
     };
-    this.server.to(room).emit("live_location", payload);
-    console.log(`📡 location_update → Sent to room: ${room}`);
+    if (payload.lat == 37.4219983 && payload.long == -122.084) return;
+    const roomInfo = this.server.sockets.adapter.rooms.get(room);
+    const numberOfClients = roomInfo ? roomInfo.size : 0;
+
+    if (numberOfClients > 0) {
+      this.server.to(room).emit("live_location", payload);
+      console.log(`📡 location_update → Sent to room: ${room}`);
+    } else {
+      console.log(`⚠️ Room ${room} is empty. Skipping emit.`);
+    }
+    console.log(`📡 location_update → Sent to room: ${room}`, payload);
     this.userTrackingService.create(payload, data.schemaName);
   }
 

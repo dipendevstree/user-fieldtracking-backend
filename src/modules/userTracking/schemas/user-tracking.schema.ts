@@ -11,6 +11,9 @@ export class UserTracking {
   @Prop({ required: true })
   userId: string;
 
+  @Prop({ required: false })
+  speed: string;
+
   @Prop({ required: true })
   organizationId: string;
 
