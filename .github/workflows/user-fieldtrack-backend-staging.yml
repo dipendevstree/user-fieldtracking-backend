@@ -66,6 +66,6 @@ jobs:
 
             export PATH=$HOME/.nvm/versions/node/v22/bin:$PATH
 
-            pm2 restart 0 --silent || { echo "PM2 restart failed"; exit 1; }
+            pm2 restart user-backend:4002 --silent || { echo "PM2 restart failed"; exit 1; }
 
             echo "Development Deployment Completed Successfully!"
