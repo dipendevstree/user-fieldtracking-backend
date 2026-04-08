@@ -197,10 +197,6 @@ export class UserTrackingController {
   ) {
     const schemaName = req.user.schemaName;
     let { location, workDaySessionId, date } = body;
-    console.log(
-      "🚀 🚀  ~~~~ user-tracking.controller.ts:200 ~~~~ UserTrackingController ~~~~ location🚀 🚀 :",
-      location.length,
-    );
 
     // Normalize payload to an array format
     let rawLocations = [];
@@ -216,10 +212,6 @@ export class UserTrackingController {
 
     for (let i = 0; i < rawLocations.length; i++) {
       const loc = rawLocations[i];
-      console.log(
-        "🚀 🚀  ~~~~ user-tracking.controller.ts:219 ~~~~ UserTrackingController ~~~~ loc🚀 🚀 :",
-        loc,
-      );
 
       const coords = loc?.coords;
 
@@ -292,10 +284,6 @@ export class UserTrackingController {
       lat: point.lat,
       long: point.long,
     }));
-    console.log(
-      "🚀 🚀  ~~~~ user-tracking.controller.ts:293 ~~~~ UserTrackingController ~~~~ latLongArray🚀 🚀 :",
-      latLongArray.length,
-    );
 
     if (latLongArray.length === 0) {
       // If all points were garbage, simply return success without saving bad data
@@ -308,10 +296,6 @@ export class UserTrackingController {
       );
     }
 
-    console.log(
-      "🚀 🚀  ~~~~ user-tracking.controller.ts:292 ~~~~ UserTrackingController ~~~~ latLongArray.length🚀 🚀 :",
-      latLongArray.length,
-    );
     // DB Insert
     const result = await this.userTrackingService.createMultiple(
       latLongArray,
@@ -364,7 +348,6 @@ export class UserTrackingController {
   ) {
     try {
       const tenantId = req.user?.schemaName;
-      console.log("userId", userId);
       req.query["organizationId"] = req.user.organizationID;
       req.query["timeZone"] = req.user.timeZone;
       req.query["userId"] = userId;
@@ -446,7 +429,6 @@ export class UserTrackingController {
     description: "Filer by workDaySessionId",
   })
   async findByUserId(@Param("userId") userId: string, @Req() req) {
-    console.log("findByUserId", userId);
     const tenantId = req.user?.schemaName;
     req.query["organizationId"] = req.user.organizationID;
     req.query["timeZone"] = req.user.timeZone;
