@@ -1,4 +1,4 @@
-name: User fieldtrack Backend Development
+name: User fieldtrack Backend Production
 
 on:
 
@@ -36,7 +36,7 @@ jobs:
 
             echo "Connecting to the Development Server..."
 
-            cd /home/node/user-fieldtracking-backend
+            cd /home/node/user-fieldtracking-backend-prod
 
             echo "Loading NVM..."
 
@@ -66,7 +66,7 @@ jobs:
 
             export PATH=$HOME/.nvm/versions/node/v20/bin:$PATH
 
-            pm2 restart 40 --silent || { echo "PM2 restart failed"; exit 1; }
+            pm2 restart 3 --silent || { echo "PM2 restart failed"; exit 1; }
 
             echo "Development Deployment Completed Successfully!"
  
