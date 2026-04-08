@@ -1,4 +1,4 @@
-name: User fieldtrack Backend Development New
+name: User fieldtrack Backend Staging
 
 on:
 
@@ -20,7 +20,7 @@ jobs:
 
         uses: actions/checkout@v4
 
-      - name: Deploy to Development Server
+      - name: Deploy to Staging Server
 
         uses: appleboy/ssh-action@v1.0.3
 
@@ -34,7 +34,7 @@ jobs:
 
           script: |
 
-            echo "Connecting to the Development Server..."
+            echo "Connecting to the Staging Server..."
 
             cd /home/ubuntu/node/user-fieldtracking-backend
 
