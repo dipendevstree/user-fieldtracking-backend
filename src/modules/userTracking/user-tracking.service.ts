@@ -31,7 +31,6 @@ export class UserTrackingService {
   private async pushToRedis(insertedRecords: any, date: string): Promise<void> {
     for (const record of insertedRecords) {
       let userTracking = record.toObject();
-      console.log("userTracking", userTracking);
       this.socketGateway.emitLiveLocation(userTracking);
       const redisKey = `user_tracking:${record.userId}:${date}`;
       await this.redisService.lpush(redisKey, userTracking); // Optional: JSON.stringify(userTracking)
@@ -52,7 +51,6 @@ export class UserTrackingService {
     const userTracking = await model.create({ ...dto, date: formattedDate });
     if (!userTracking) return null;
     // Push to Redis
-    console.log("createUserTracking", userTracking);
     const redisKey = `user_tracking:${userTracking.userId}:${dto.date}`;
     await this.redisService.lpush(redisKey, userTracking); // Optional: JSON.stringify(userTracking)
     await this.redisService.expire(redisKey, 86400); // 1 day = 86400 seconds
@@ -107,7 +105,6 @@ export class UserTrackingService {
         startDate,
         endDate,
       } = query;
-      console.log("query", query);
       let startDateFormatted = moment
         .tz(startDate, timeZone)
         .format("DD-MM-YYYY");
@@ -117,12 +114,9 @@ export class UserTrackingService {
         startDateFormatted == endDateFormatted
           ? `user_tracking:${userId}:${startDateFormatted}`
           : null;
-      console.log("redisKey1122211211111", redisKey, startDate);
       // Try Redis if session ID is available
       if (redisKey && startDate) {
-        console.log("redisKey12121221212121", redisKey);
         const redisData = await this.redisService.lrange(redisKey, 0, -1);
-        console.log("redisData1231313112", redisData.length);
         if (redisData?.length) return redisData;
       }
       // Fallback to DB
@@ -138,7 +132,6 @@ export class UserTrackingService {
           $lte: moment.tz(endDate, timeZone).endOf("day").toDate(),
         };
       }
-      console.log("whereCondition", whereCondition);
       return await model.find(whereCondition).sort({ createdAt: -1 });
     } catch (error) {
       console.log("errrrrorrr", error);
