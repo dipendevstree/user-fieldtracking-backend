@@ -20,7 +20,7 @@ jobs:
 
         uses: actions/checkout@v4
 
-      - name: Deploy to Development Server
+      - name: User fieldtrack Backend Production
 
         uses: appleboy/ssh-action@v1.0.3
 
