@@ -66,6 +66,6 @@ jobs:
 
             export PATH=$HOME/.nvm/versions/node/v22/bin:$PATH
 
-            pm2 restart user-fieldtracking-backend --silent || { echo "PM2 restart failed"; exit 1; }
+            pm2 restart user-fieldtracking-backend-prod:6001 --silent || { echo "PM2 restart failed"; exit 1; }
 
             echo "Development Deployment Completed Successfully!"
