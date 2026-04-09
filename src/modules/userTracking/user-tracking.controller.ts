@@ -198,7 +198,7 @@ export class UserTrackingController {
     const schemaName = req.user.schemaName;
     let { location, workDaySessionId, date } = body;
     console.log("==================================Live Tracking Debug(Start)==============================================");
-    console.log("=> Location: ", Array.isArray(location) ? "Location length: " + location.length : "Location Object: " + JSON.stringify(location));
+    console.log("=> Location: ", Array.isArray(location) ? "Location length: " + location.length : "Location Object: " + JSON.stringify(location), "Raw Location Object From App:", location);
     // Normalize payload to an array format
     let rawLocations = [];
 
