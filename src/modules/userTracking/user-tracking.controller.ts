@@ -197,7 +197,8 @@ export class UserTrackingController {
   ) {
     const schemaName = req.user.schemaName;
     let { location, workDaySessionId, date } = body;
-
+    console.log("==================================Live Tracking Debug(Start)==============================================");
+    console.log("=> Location: ", Array.isArray(location) ? "Location length: " + location.length : "Location Object: " + JSON.stringify(location));
     // Normalize payload to an array format
     let rawLocations = [];
 
@@ -206,6 +207,8 @@ export class UserTrackingController {
     } else if (location && location.coords) {
       rawLocations = [location];
     }
+
+    console.log("=> Raw Locations Length: ", rawLocations.length);
 
     // Phase 1: Extract and Filter Bad Accuracy & Simulator Data
     let preFilteredPoints = [];
@@ -238,6 +241,9 @@ export class UserTrackingController {
       }
     }
 
+    console.log("=> Pre Filtered Points Length: ", preFilteredPoints.length);
+    console.log("=> Dropped Points Length from Raw Locations: ", rawLocations.length - preFilteredPoints.length);
+
     // Phase 2: Velocity Check (Remove impossible jumps)
     // Ensure chronologically sorted first
     preFilteredPoints.sort(
@@ -267,12 +273,18 @@ export class UserTrackingController {
       }
     }
 
+    console.log("=> Valid Path Points Length: ", validPathPoints.length);
+    console.log("=> Dropped Points Length from Velocity Check: ", preFilteredPoints.length - validPathPoints.length);
+
     // Phase 3: Path Simplification (Douglas-Peucker)
     // Removes stationary micro-jitter. Epsilon 0.0001 is approx 11 meters tolerance.
     let finalSmoothedPoints =
       validPathPoints.length > 2
         ? this.douglasPeucker(validPathPoints, 0.0001)
         : validPathPoints;
+
+    console.log("=> Final Smoothed Points Length: ", finalSmoothedPoints.length);
+    console.log("=> Dropped Points Length from Path Simplification: ", validPathPoints.length - finalSmoothedPoints.length);
 
     // Final Mapping to Database Schema format
     let latLongArray = finalSmoothedPoints.map((point) => ({
@@ -285,7 +297,12 @@ export class UserTrackingController {
       long: point.long,
     }));
 
+    console.log("=> Final Lat Long Array Length: ", latLongArray.length);
+    console.log("=> Total Dropped Points: ", rawLocations.length - latLongArray.length);
+
     if (latLongArray.length === 0) {
+      console.log("=> Doesn't touch database");
+      console.log("==================================Live Tracking Debug(End with No Valid Points)==============================================");
       // If all points were garbage, simply return success without saving bad data
       return commonResponse.success(
         "en",
@@ -302,6 +319,9 @@ export class UserTrackingController {
       schemaName,
       date,
     );
+
+    console.log("=> Data Inserted Into Database");
+    console.log("==================================Live Tracking Debug(End)==============================================");
 
     return commonResponse.success(
       "en",
