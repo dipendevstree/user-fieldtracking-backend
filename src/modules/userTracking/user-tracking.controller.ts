@@ -308,7 +308,7 @@ export class UserTrackingController {
       userId: req.user.id,
       organizationId: req.user.organizationID,
       speed: point.speed,
-      date: moment.utc(date, "DD-MM-YYYY").startOf("day").toDate(),
+      date: point.timestamp,
       lat: point.lat,
       long: point.long,
       isSignificantMove: false, // default false. calculation will happend before insert into db
