@@ -10,7 +10,6 @@ import { commonFunctions } from "helper";
 import moment from "moment-timezone";
 import { RedisService } from "../redis/redis.service";
 import { SocketGateway } from "../socket/socket.gateway";
-import { date } from "joi";
 
 @Injectable()
 export class UserTrackingService {
