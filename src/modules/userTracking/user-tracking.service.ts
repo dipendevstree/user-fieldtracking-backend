@@ -10,6 +10,7 @@ import { commonFunctions } from "helper";
 import moment from "moment-timezone";
 import { RedisService } from "../redis/redis.service";
 import { SocketGateway } from "../socket/socket.gateway";
+import { date } from "joi";
 
 @Injectable()
 export class UserTrackingService {
@@ -115,10 +116,10 @@ export class UserTrackingService {
           ? `user_tracking:${userId}:${startDateFormatted}`
           : null;
       // Try Redis if session ID is available
-      if (redisKey && startDate) {
-        const redisData = await this.redisService.lrange(redisKey, 0, -1);
-        if (redisData?.length) return redisData;
-      }
+      // if (redisKey && startDate) {
+      //   const redisData = await this.redisService.lrange(redisKey, 0, -1);
+      //   if (redisData?.length) return redisData;
+      // }
       // Fallback to DB
       const model = this.getModel(tenantId);
       const whereCondition: any = {
@@ -132,25 +133,7 @@ export class UserTrackingService {
           $lte: moment.tz(endDate, timeZone).endOf("day").toDate(),
         };
       }
-      // old query. sort by createdAt
-      // return await model.find(whereCondition).sort({ createdAt: -1 });
-      // new query, sort by date (timestamp) if exists else createdAt
-      return await model.aggregate([
-        { $match: whereCondition },
-        {
-          $addFields: {
-            sortKey: {
-              $ifNull: ["$date", "$createdAt"]
-            }
-          }
-        },
-        { $sort: { sortKey: -1 } },
-        {
-          $project: {
-            sortKey: 0  // remove sortKey from the final result
-          }
-        }
-      ]);
+      return await model.find(whereCondition).sort({ date: -1 });
     } catch (error) {
       console.log("errrrrorrr", error);
     }
