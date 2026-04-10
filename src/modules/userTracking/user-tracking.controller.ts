@@ -189,6 +189,22 @@ export class UserTrackingController {
     }
   };
 
+  getDistanceInMeters = (point1: any, point2: any) => {
+    const R = 6371e3; // metres
+    const φ1 = point1.lat * Math.PI/180; // φ, λ in radians
+    const φ2 = point2.lat * Math.PI/180;
+    const Δφ = (point2.lat-point1.lat) * Math.PI/180;
+    const Δλ = (point2.long-point1.long) * Math.PI/180;
+
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+              Math.cos(φ1) * Math.cos(φ2) *
+              Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+    const d = R * c; // in metres
+    return d;
+  }
+
   @Post("/create-multiple")
   async createMultiple(
     @Req() req,
@@ -295,6 +311,7 @@ export class UserTrackingController {
       date: moment.utc(date, "DD-MM-YYYY").startOf("day").toDate(),
       lat: point.lat,
       long: point.long,
+      isSignificantMove: false, // default false. calculation will happend before insert into db
     }));
 
     console.log("=> Final Lat Long Array Length: ", latLongArray.length);
@@ -311,6 +328,28 @@ export class UserTrackingController {
         201,
         [],
       );
+    }
+
+    // Get the last lat-long from the database
+    const lastLatLong = await this.userTrackingService.getSingleEntryByQuery(
+      {
+        userId: req.user.id,
+        timeZone: req.user.timeZone,
+        organizationId: req.user.organizationID,
+        startDate: moment.utc(date, "DD-MM-YYYY").startOf("day").toDate(),
+        endDate: moment.utc(date, "DD-MM-YYYY").endOf("day").toDate(),
+      },
+      schemaName,
+    );
+    let previousLatLongWhoseDistanceIsMoreThan50Meters = null;
+    
+    for (let point of latLongArray) {
+      if (this.getDistanceInMeters(lastLatLong, point) > 50) {
+        previousLatLongWhoseDistanceIsMoreThan50Meters = point;
+        point.isSignificantMove = true;
+      } else {
+        point.isSignificantMove = false;
+      }
     }
 
     // DB Insert
