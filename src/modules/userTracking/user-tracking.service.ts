@@ -132,7 +132,25 @@ export class UserTrackingService {
           $lte: moment.tz(endDate, timeZone).endOf("day").toDate(),
         };
       }
-      return await model.find(whereCondition).sort({ createdAt: -1 });
+      // old query. sort by createdAt
+      // return await model.find(whereCondition).sort({ createdAt: -1 });
+      // new query, sort by date (timestamp) if exists else createdAt
+      return await model.aggregate([
+        { $match: whereCondition },
+        {
+          $addFields: {
+            sortKey: {
+              $ifNull: ["$date", "$createdAt"]
+            }
+          }
+        },
+        { $sort: { sortKey: -1 } },
+        {
+          $project: {
+            sortKey: 0  // remove sortKey from the final result
+          }
+        }
+      ]);
     } catch (error) {
       console.log("errrrrorrr", error);
     }
