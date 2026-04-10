@@ -344,7 +344,10 @@ export class UserTrackingController {
     let previousLatLongWhoseDistanceIsMoreThan50Meters = null;
     
     for (let point of latLongArray) {
-      if (this.getDistanceInMeters(lastLatLong, point) > 50) {
+      if (!lastLatLong) {
+        previousLatLongWhoseDistanceIsMoreThan50Meters = point;
+        point.isSignificantMove = true;
+      } else if (this.getDistanceInMeters(lastLatLong, point) > 50) {
         previousLatLongWhoseDistanceIsMoreThan50Meters = point;
         point.isSignificantMove = true;
       } else {
