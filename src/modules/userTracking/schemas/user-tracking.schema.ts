@@ -25,6 +25,9 @@ export class UserTracking {
 
   @Prop({ type: Date, required: true })
   date: Date;
+
+  @Prop({ type: Boolean, default: false })
+  isSignificantMove: boolean;
 }
 
 export const UserTrackingSchema = SchemaFactory.createForClass(UserTracking);
