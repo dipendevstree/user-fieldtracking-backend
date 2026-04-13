@@ -132,7 +132,7 @@ export class UserTrackingService {
           $lte: moment.tz(endDate, timeZone).endOf("day").toDate(),
         };
       }
-      return await model.find(whereCondition).sort({ createdAt: -1 });
+      return await model.find(whereCondition).sort({ date: -1 });
     } catch (error) {
       console.log("errrrrorrr", error);
     }
