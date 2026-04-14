@@ -43,6 +43,7 @@ export class UserTrackingController {
     );
   }
 
+  // Old Method (As per project start)
   // @Post("/create-multiple")
   // async createMultiple(
   //   @Req() req,
@@ -109,6 +110,78 @@ export class UserTrackingController {
   //     result
   //   );
   // }
+
+  // New Method but not using lat long filters (Current latest function as per timestamp column changes)
+  @Post("/create-multiple")
+  async createMultiple(
+    @Req() req,
+    @Res() res: Response,
+    @Body() body: CreateMultipleUserTrackingDto
+  ) {
+    const schemaName = req.user.schemaName;
+    let { location, workDaySessionId, date } = body;
+    console.log("==================================Live Tracking Debug(Start)==============================================");
+    console.log("=> Location: ", Array.isArray(location) ? "Location length: " + location.length : "Location Object: " + JSON.stringify(location), "Raw Location Object From App:", location)
+    let latLongArray = [];
+    if (location?.length > 0) {
+      for (let index = 0; index < location.length; index++) {
+        const element = location[index];
+        const latitude = element?.coords?.latitude;
+        const longitude = element?.coords?.longitude;
+        if (latitude != null && longitude != null) {
+          if (latitude == 37.4219983 && longitude == -122.084) {
+            continue;
+          } else {
+            latLongArray.push({
+              workDaySessionId: workDaySessionId,
+              userId: req.user.id,
+              organizationId: req.user.organizationID,
+              speed: element?.coords?.speed,
+              date: element.timestamp,
+              lat: latitude,
+              long: longitude,
+            });
+          }
+        } else {
+          console.log("Invalid coordinates in element:", element);
+        }
+      }
+    } else if (location?.coords) {
+      const latitude = location?.coords?.latitude;
+      const longitude = location?.coords?.longitude;
+      if (latitude != null && longitude != null) {
+        if (latitude == 37.4219983 && longitude == -122.084) {
+          return;
+        } else {
+          latLongArray.push({
+            workDaySessionId: workDaySessionId,
+            userId: req.user.id,
+            organizationId: req.user.organizationID,
+            speed: location?.coords?.speed,
+            date: location.timestamp,
+            lat: latitude,
+            long: longitude,
+          });
+        }
+      } else {
+        console.log("Invalid single location:", location);
+      }
+    }
+    const result = await this.userTrackingService.createMultiple(
+      latLongArray,
+      schemaName,
+      date
+    );
+    console.log("=> Data Inserted Into Database. Total Records: ", latLongArray.length);
+    console.log("==================================Live Tracking Debug(End)==============================================");
+    return commonResponse.success(
+      "en",
+      res,
+      "USER_TRACKING_MULTIPLE_CREATED_SUCCESS",
+      201,
+      result
+    );
+  }
 
   // 1. Haversine Formula for Server-Side Validation
   getDistanceInKm = (
@@ -205,174 +278,175 @@ export class UserTrackingController {
     return d;
   }
 
-  @Post("/create-multiple")
-  async createMultiple(
-    @Req() req,
-    @Res() res: Response,
-    @Body() body: CreateMultipleUserTrackingDto,
-  ) {
-    const schemaName = req.user.schemaName;
-    let { location, workDaySessionId, date } = body;
-    console.log("==================================Live Tracking Debug(Start)==============================================");
-    console.log("=> Location: ", Array.isArray(location) ? "Location length: " + location.length : "Location Object: " + JSON.stringify(location), "Raw Location Object From App:", location);
-    // Normalize payload to an array format
-    let rawLocations = [];
+  // New route method for lat long filtrations. (Commented for checking timestamp wise lat long insert for old method)
+  // @Post("/create-multiple")
+  // async createMultiple(
+  //   @Req() req,
+  //   @Res() res: Response,
+  //   @Body() body: CreateMultipleUserTrackingDto,
+  // ) {
+  //   const schemaName = req.user.schemaName;
+  //   let { location, workDaySessionId, date } = body;
+  //   console.log("==================================Live Tracking Debug(Start)==============================================");
+  //   console.log("=> Location: ", Array.isArray(location) ? "Location length: " + location.length : "Location Object: " + JSON.stringify(location), "Raw Location Object From App:", location);
+  //   // Normalize payload to an array format
+  //   let rawLocations = [];
 
-    if (Array.isArray(location)) {
-      rawLocations = location;
-    } else if (location && location.coords) {
-      rawLocations = [location];
-    }
+  //   if (Array.isArray(location)) {
+  //     rawLocations = location;
+  //   } else if (location && location.coords) {
+  //     rawLocations = [location];
+  //   }
 
-    console.log("=> Raw Locations Length: ", rawLocations.length);
+  //   console.log("=> Raw Locations Length: ", rawLocations.length);
 
-    // Phase 1: Extract and Filter Bad Accuracy & Simulator Data
-    let preFilteredPoints = [];
+  //   // Phase 1: Extract and Filter Bad Accuracy & Simulator Data
+  //   let preFilteredPoints = [];
 
-    for (let i = 0; i < rawLocations.length; i++) {
-      const loc = rawLocations[i];
+  //   for (let i = 0; i < rawLocations.length; i++) {
+  //     const loc = rawLocations[i];
 
-      const coords = loc?.coords;
+  //     const coords = loc?.coords;
 
-      if (coords?.latitude != null && coords?.longitude != null) {
-        // Reject Google Simulator
-        if (coords.latitude == 37.4219983 && coords.longitude == -122.084)
-          continue;
+  //     if (coords?.latitude != null && coords?.longitude != null) {
+  //       // Reject Google Simulator
+  //       if (coords.latitude == 37.4219983 && coords.longitude == -122.084)
+  //         continue;
 
-        // REJECT: Terrible accuracy (Multipath train box error)
-        if (coords.accuracy > 150) {
-          console.log(
-            `[GPS Shield] Dropped point due to low accuracy: ${coords.accuracy}m`,
-          );
-          continue;
-        }
+  //       // REJECT: Terrible accuracy (Multipath train box error)
+  //       if (coords.accuracy > 150) {
+  //         console.log(
+  //           `[GPS Shield] Dropped point due to low accuracy: ${coords.accuracy}m`,
+  //         );
+  //         continue;
+  //       }
 
-        preFilteredPoints.push({
-          lat: coords.latitude,
-          long: coords.longitude,
-          speed: coords.speed,
-          accuracy: coords.accuracy,
-          timestamp: loc.timestamp || new Date().toISOString(), // Use plugin timestamp
-        });
-      }
-    }
+  //       preFilteredPoints.push({
+  //         lat: coords.latitude,
+  //         long: coords.longitude,
+  //         speed: coords.speed,
+  //         accuracy: coords.accuracy,
+  //         timestamp: loc.timestamp || new Date().toISOString(), // Use plugin timestamp
+  //       });
+  //     }
+  //   }
 
-    console.log("=> Pre Filtered Points Length: ", preFilteredPoints.length);
-    console.log("=> Dropped Points Length from Raw Locations: ", rawLocations.length - preFilteredPoints.length);
+  //   console.log("=> Pre Filtered Points Length: ", preFilteredPoints.length);
+  //   console.log("=> Dropped Points Length from Raw Locations: ", rawLocations.length - preFilteredPoints.length);
 
-    // Phase 2: Velocity Check (Remove impossible jumps)
-    // Ensure chronologically sorted first
-    preFilteredPoints.sort(
-      (a, b) =>
-        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
-    );
+  //   // Phase 2: Velocity Check (Remove impossible jumps)
+  //   // Ensure chronologically sorted first
+  //   preFilteredPoints.sort(
+  //     (a, b) =>
+  //       new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+  //   );
 
-    let validPathPoints = [];
-    let lastValidPoint = null;
+  //   let validPathPoints = [];
+  //   let lastValidPoint = null;
 
-    for (let i = 0; i < preFilteredPoints.length; i++) {
-      const currentPoint = preFilteredPoints[i];
+  //   for (let i = 0; i < preFilteredPoints.length; i++) {
+  //     const currentPoint = preFilteredPoints[i];
 
-      if (!lastValidPoint) {
-        validPathPoints.push(currentPoint);
-        lastValidPoint = currentPoint;
-      } else {
-        // Check if speed between last known point and current point is physically possible (<250 km/h)
-        if (this.isPlausibleSpeed(lastValidPoint, currentPoint, 250)) {
-          validPathPoints.push(currentPoint);
-          lastValidPoint = currentPoint;
-        } else {
-          console.log(
-            `[GPS Shield] Dropped multipath jump (Speed exceeded 250km/h)`,
-          );
-        }
-      }
-    }
+  //     if (!lastValidPoint) {
+  //       validPathPoints.push(currentPoint);
+  //       lastValidPoint = currentPoint;
+  //     } else {
+  //       // Check if speed between last known point and current point is physically possible (<250 km/h)
+  //       if (this.isPlausibleSpeed(lastValidPoint, currentPoint, 250)) {
+  //         validPathPoints.push(currentPoint);
+  //         lastValidPoint = currentPoint;
+  //       } else {
+  //         console.log(
+  //           `[GPS Shield] Dropped multipath jump (Speed exceeded 250km/h)`,
+  //         );
+  //       }
+  //     }
+  //   }
 
-    console.log("=> Valid Path Points Length: ", validPathPoints.length);
-    console.log("=> Dropped Points Length from Velocity Check: ", preFilteredPoints.length - validPathPoints.length);
+  //   console.log("=> Valid Path Points Length: ", validPathPoints.length);
+  //   console.log("=> Dropped Points Length from Velocity Check: ", preFilteredPoints.length - validPathPoints.length);
 
-    // Phase 3: Path Simplification (Douglas-Peucker)
-    // Removes stationary micro-jitter. Epsilon 0.0001 is approx 11 meters tolerance.
-    let finalSmoothedPoints =
-      validPathPoints.length > 2
-        ? this.douglasPeucker(validPathPoints, 0.0001)
-        : validPathPoints;
+  //   // Phase 3: Path Simplification (Douglas-Peucker)
+  //   // Removes stationary micro-jitter. Epsilon 0.0001 is approx 11 meters tolerance.
+  //   let finalSmoothedPoints =
+  //     validPathPoints.length > 2
+  //       ? this.douglasPeucker(validPathPoints, 0.0001)
+  //       : validPathPoints;
 
-    console.log("=> Final Smoothed Points Length: ", finalSmoothedPoints.length);
-    console.log("=> Dropped Points Length from Path Simplification: ", validPathPoints.length - finalSmoothedPoints.length);
+  //   console.log("=> Final Smoothed Points Length: ", finalSmoothedPoints.length);
+  //   console.log("=> Dropped Points Length from Path Simplification: ", validPathPoints.length - finalSmoothedPoints.length);
 
-    // Final Mapping to Database Schema format
-    let latLongArray = finalSmoothedPoints.map((point) => ({
-      workDaySessionId: workDaySessionId,
-      userId: req.user.id,
-      organizationId: req.user.organizationID,
-      speed: point.speed,
-      date: point.timestamp,
-      lat: point.lat,
-      long: point.long,
-      isSignificantMove: false, // default false. calculation will happend before insert into db
-    }));
+  //   // Final Mapping to Database Schema format
+  //   let latLongArray = finalSmoothedPoints.map((point) => ({
+  //     workDaySessionId: workDaySessionId,
+  //     userId: req.user.id,
+  //     organizationId: req.user.organizationID,
+  //     speed: point.speed,
+  //     date: point.timestamp,
+  //     lat: point.lat,
+  //     long: point.long,
+  //     isSignificantMove: false, // default false. calculation will happend before insert into db
+  //   }));
 
-    console.log("=> Final Lat Long Array Length: ", latLongArray.length);
-    console.log("=> Total Dropped Points: ", rawLocations.length - latLongArray.length);
+  //   console.log("=> Final Lat Long Array Length: ", latLongArray.length);
+  //   console.log("=> Total Dropped Points: ", rawLocations.length - latLongArray.length);
 
-    if (latLongArray.length === 0) {
-      console.log("=> Doesn't touch database");
-      console.log("==================================Live Tracking Debug(End with No Valid Points)==============================================");
-      // If all points were garbage, simply return success without saving bad data
-      return commonResponse.success(
-        "en",
-        res,
-        "USER_TRACKING_FILTERED_ALL_POINTS",
-        201,
-        [],
-      );
-    }
+  //   if (latLongArray.length === 0) {
+  //     console.log("=> Doesn't touch database");
+  //     console.log("==================================Live Tracking Debug(End with No Valid Points)==============================================");
+  //     // If all points were garbage, simply return success without saving bad data
+  //     return commonResponse.success(
+  //       "en",
+  //       res,
+  //       "USER_TRACKING_FILTERED_ALL_POINTS",
+  //       201,
+  //       [],
+  //     );
+  //   }
 
-    // Get the last lat-long from the database
-    const lastLatLong = await this.userTrackingService.getSingleEntryByQuery(
-      {
-        userId: req.user.id,
-        timeZone: req.user.timeZone,
-        organizationId: req.user.organizationID,
-        startDate: moment.utc(date, "DD-MM-YYYY").startOf("day").toDate(),
-        endDate: moment.utc(date, "DD-MM-YYYY").endOf("day").toDate(),
-      },
-      schemaName,
-    );
-    let previousLatLongWhoseDistanceIsMoreThan50Meters = null;
+  //   // Get the last lat-long from the database
+  //   const lastLatLong = await this.userTrackingService.getSingleEntryByQuery(
+  //     {
+  //       userId: req.user.id,
+  //       timeZone: req.user.timeZone,
+  //       organizationId: req.user.organizationID,
+  //       startDate: moment.utc(date, "DD-MM-YYYY").startOf("day").toDate(),
+  //       endDate: moment.utc(date, "DD-MM-YYYY").endOf("day").toDate(),
+  //     },
+  //     schemaName,
+  //   );
+  //   let previousLatLongWhoseDistanceIsMoreThan50Meters = null;
     
-    for (let point of latLongArray) {
-      if (!lastLatLong) {
-        previousLatLongWhoseDistanceIsMoreThan50Meters = point;
-        point.isSignificantMove = true;
-      } else if (this.getDistanceInMeters(lastLatLong, point) > 50) {
-        previousLatLongWhoseDistanceIsMoreThan50Meters = point;
-        point.isSignificantMove = true;
-      } else {
-        point.isSignificantMove = false;
-      }
-    }
+  //   for (let point of latLongArray) {
+  //     if (!lastLatLong) {
+  //       previousLatLongWhoseDistanceIsMoreThan50Meters = point;
+  //       point.isSignificantMove = true;
+  //     } else if (this.getDistanceInMeters(lastLatLong, point) > 50) {
+  //       previousLatLongWhoseDistanceIsMoreThan50Meters = point;
+  //       point.isSignificantMove = true;
+  //     } else {
+  //       point.isSignificantMove = false;
+  //     }
+  //   }
 
-    // DB Insert
-    const result = await this.userTrackingService.createMultiple(
-      latLongArray,
-      schemaName,
-      date,
-    );
+  //   // DB Insert
+  //   const result = await this.userTrackingService.createMultiple(
+  //     latLongArray,
+  //     schemaName,
+  //     date,
+  //   );
 
-    console.log("=> Data Inserted Into Database");
-    console.log("==================================Live Tracking Debug(End)==============================================");
+  //   console.log("=> Data Inserted Into Database");
+  //   console.log("==================================Live Tracking Debug(End)==============================================");
 
-    return commonResponse.success(
-      "en",
-      res,
-      "USER_TRACKING_MULTIPLE_CREATED_SUCCESS",
-      201,
-      result,
-    );
-  }
+  //   return commonResponse.success(
+  //     "en",
+  //     res,
+  //     "USER_TRACKING_MULTIPLE_CREATED_SUCCESS",
+  //     201,
+  //     result,
+  //   );
+  // }
 
   @Get("last-lot-long/:userId")
   @ApiQuery({
