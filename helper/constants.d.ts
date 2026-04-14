@@ -37,3 +37,5 @@ export declare const VEHICLE_TYPE: {
   PRIVATE: string;
   PUBLIC: string;
 };
+
+export declare const APP_VERSION: string;

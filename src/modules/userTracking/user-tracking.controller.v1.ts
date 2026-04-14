@@ -20,8 +20,8 @@ import moment from "moment-timezone";
 @ApiTags("UserTracking")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Controller("user-tracking")
-export class UserTrackingController {
+@Controller({ path: "user-tracking", version: "1" })
+export class UserTrackingControllerV1 {
   constructor(private readonly userTrackingService: UserTrackingService) {}
 
   @Post("/create")

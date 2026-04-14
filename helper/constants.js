@@ -40,3 +40,5 @@ exports.VISIT_STATUS = {
   CANCEL: "cancel",
   PARTIAL_COMPLETED: "partial_completed",
 };
+
+exports.APP_VERSION = "1";
