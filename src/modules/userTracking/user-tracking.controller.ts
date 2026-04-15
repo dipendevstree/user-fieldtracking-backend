@@ -140,6 +140,7 @@ export class UserTrackingController {
               date: element.timestamp,
               lat: latitude,
               long: longitude,
+              locationRawData: element,
             });
           }
         } else {
@@ -161,6 +162,7 @@ export class UserTrackingController {
             date: location.timestamp,
             lat: latitude,
             long: longitude,
+            locationRawData: location,
           });
         }
       } else {
@@ -416,7 +418,7 @@ export class UserTrackingController {
   //     schemaName,
   //   );
   //   let previousLatLongWhoseDistanceIsMoreThan50Meters = null;
-    
+
   //   for (let point of latLongArray) {
   //     if (!lastLatLong) {
   //       previousLatLongWhoseDistanceIsMoreThan50Meters = point;

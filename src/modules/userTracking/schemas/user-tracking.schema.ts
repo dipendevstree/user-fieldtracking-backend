@@ -28,6 +28,9 @@ export class UserTracking {
 
   @Prop({ type: Boolean, default: false })
   isSignificantMove: boolean;
+
+  @Prop({ type: Object, required: false })
+  locationRawData?: Record<string, any>;
 }
 
 export const UserTrackingSchema = SchemaFactory.createForClass(UserTracking);
