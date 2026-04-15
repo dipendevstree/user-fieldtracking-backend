@@ -126,8 +126,6 @@ export class UserTrackingService {
         ...commonFunctions.appendIfValid("workDaySessionId", workDaySessionId),
         ...commonFunctions.appendIfValid("userId", userId),
       };
-      
-      whereCondition["locationRawData.activity.type"] = { $ne: "still" };
 
       if (startDate && endDate) {
         whereCondition.date = {
@@ -135,7 +133,34 @@ export class UserTrackingService {
           $lte: moment.tz(endDate, timeZone).endOf("day").toDate(),
         };
       }
-      return await model.find(whereCondition).sort({ date: -1 });
+
+      // Fetch all records sorted ASC to identify first and last points
+      const allRecords = await model.find(whereCondition).sort({ date: 1 });
+
+      if (allRecords.length <= 2) {
+        return allRecords.reverse(); // Standard reverse to maintain desc order
+      }
+
+      // Filter intermediate points based on movement criteria
+      const filteredRecords = allRecords.filter((record, index) => {
+        // Always include first and last points (Punch-in/Punch-out)
+        if (index === 0 || index === allRecords.length - 1) return true;
+
+        const lrd = record.locationRawData;
+        if (!lrd) return true;
+
+        const isMoving = lrd.is_moving === true;
+        const hasSpeed = lrd.coords && lrd.coords.speed > 0.5;
+        const isSignificantEvent = [
+          "motionchange",
+          "geofence",
+          "providerchange",
+        ].includes(lrd.event);
+
+        return isMoving || hasSpeed || isSignificantEvent;
+      });
+
+      return filteredRecords.reverse();
     } catch (error) {
       console.log("errrrrorrr", error);
     }
