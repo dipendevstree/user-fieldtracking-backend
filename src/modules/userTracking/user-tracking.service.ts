@@ -126,6 +126,9 @@ export class UserTrackingService {
         ...commonFunctions.appendIfValid("workDaySessionId", workDaySessionId),
         ...commonFunctions.appendIfValid("userId", userId),
       };
+      
+      whereCondition["locationRawData.activity.type"] = { $ne: "still" };
+
       if (startDate && endDate) {
         whereCondition.date = {
           $gte: moment.tz(startDate, timeZone).startOf("day").toDate(),
