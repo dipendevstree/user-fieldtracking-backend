@@ -141,11 +141,12 @@ export class UserTrackingService {
         const isFirst = index === 0;
         const isLast = index === allRecords.length - 1;
 
-        const isStill = record?.locationRawData?.activity?.type === "still";
+        const isNotStill = record?.locationRawData?.activity?.type !== "still";
+        const isSignificantMove = parseInt(record?.speed) > 0;
 
         if (isFirst || isLast) return true;
 
-        return !isStill;
+        return isNotStill || isSignificantMove;
       });
 
       return filteredRecords.reverse();
