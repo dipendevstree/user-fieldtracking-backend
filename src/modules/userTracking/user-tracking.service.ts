@@ -126,8 +126,6 @@ export class UserTrackingService {
         ...commonFunctions.appendIfValid("workDaySessionId", workDaySessionId),
         ...commonFunctions.appendIfValid("userId", userId),
       };
-      
-      whereCondition["locationRawData.activity.type"] = { $ne: "still" };
 
       if (startDate && endDate) {
         whereCondition.date = {
@@ -135,7 +133,22 @@ export class UserTrackingService {
           $lte: moment.tz(endDate, timeZone).endOf("day").toDate(),
         };
       }
-      return await model.find(whereCondition).sort({ date: -1 });
+
+      // Fetch all records sorted ASC to identify first and last points
+      const allRecords = await model.find(whereCondition).sort({ date: 1 });
+
+      const filteredRecords = allRecords.filter((record, index) => {
+        const isFirst = index === 0;
+        const isLast = index === allRecords.length - 1;
+
+        const isStill = record?.locationRawData?.activity?.type === "still";
+
+        if (isFirst || isLast) return true;
+
+        return !isStill;
+      });
+
+      return filteredRecords.reverse();
     } catch (error) {
       console.log("errrrrorrr", error);
     }
