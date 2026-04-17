@@ -198,7 +198,7 @@ export class UserTrackingService {
       // Include records that are not still AND have significant speed
       {
         "locationRawData.activity.type": { $ne: "still" },
-        $expr: { $gt: [{ $toInt: "$speed" }, 0] }, // handles speed stored as string
+        $expr: { $gt: [{ $toInt: { $toDouble: "$speed" } }, 0] }, // handles speed stored as string
       }
     ];
     if (boundaryIds?.length > 0) {
