@@ -110,7 +110,10 @@ export class UserTrackingService {
       };
     }
     let latestEntry = await model
-      .findOne(whereCondition)
+      .findOne({
+        ...whereCondition,
+        ...this.filterCondition()
+      })
       .sort({ date: -1 })
       .lean();
     if (withFullAddress && latestEntry) {
