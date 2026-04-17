@@ -13,9 +13,9 @@ export class RedisService implements OnModuleDestroy {
   }
 
   // Set a value in Redis with 1-day expiration
-  async setValue(key: string, value: any): Promise<void> {
+  async setValue(key: string, value: any): Promise<string> {
     // 86400 seconds = 24 hours
-    await this.client.set(key, JSON.stringify(value), {
+    return await this.client.set(key, JSON.stringify(value), {
       EX: 86400, // TTL in seconds
     });
   }
@@ -58,8 +58,8 @@ export class RedisService implements OnModuleDestroy {
   }
 
   // Redis List Push (for user tracking)
-  async lpush(key: string, value: any): Promise<void> {
-    await this.client.lPush(key, JSON.stringify(value));
+  async lpush(key: string, value: any): Promise<number> {
+    return await this.client.lPush(key, JSON.stringify(value));
   }
 
   // Redis List Range (read all tracking data for a key)
@@ -74,8 +74,8 @@ export class RedisService implements OnModuleDestroy {
   }
 
   // Optional TTL for keys (expire after N seconds)
-  async expire(key: string, seconds: number): Promise<void> {
-    await this.client.expire(key, seconds);
+  async expire(key: string, seconds: number): Promise<number> {
+    return await this.client.expire(key, seconds);
   }
 
   // Clean up Redis client when module is destroyed
