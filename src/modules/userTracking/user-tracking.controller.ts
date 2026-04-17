@@ -575,9 +575,9 @@ export class UserTrackingController {
     return this.userTrackingService.findAll(tenantId, req.query);
   }
 
-  @Delete()
-  async deleteAll(@Req() req) {
-    const tenantId = req.user?.schemaName;
-    return this.userTrackingService.deleteAll(tenantId);
-  }
+  // @Delete()
+  // async deleteAll(@Req() req) {
+  //   const tenantId = req.user?.schemaName;
+  //   return this.userTrackingService.deleteAll(tenantId);
+  // }
 }
