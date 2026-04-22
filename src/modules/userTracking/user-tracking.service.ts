@@ -198,7 +198,10 @@ export class UserTrackingService {
       // Include records that are not still AND have significant speed
       {
         "locationRawData.activity.type": { $ne: "still" },
-        $expr: { $gt: [{ $toInt: { $toDouble: "$speed" } }, 0] }, // handles speed stored as string
+        $or: [
+          { $expr: { $gt: [{ $toInt: { $toDouble: "$speed" } }, 0] } }, // handles speed stored as string
+          { speed: "-1" } // explicitly include speed "-1"
+        ]
       }
     ];
     if (boundaryIds?.length > 0) {
@@ -219,7 +222,7 @@ export class UserTrackingService {
     if (!ignoreFirstAndLast && (isFirst || isLast)) return true; // Always include first and last points
 
     const isNotStill = location?.locationRawData?.activity?.type !== "still";
-    const isSignificantMove = parseInt(location?.speed) > 0;
+    const isSignificantMove = parseInt(location?.speed) > 0 || location?.speed === "-1";
 
     return isNotStill && isSignificantMove; // Exclude still points and points with speed 0
   }
