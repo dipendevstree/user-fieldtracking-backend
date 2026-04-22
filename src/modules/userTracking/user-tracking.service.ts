@@ -112,7 +112,7 @@ export class UserTrackingService {
     let latestEntry = await model
       .findOne({
         ...whereCondition,
-        ...this.filterCondition()
+        // ...this.filterCondition() // uncomment this if you want valid records only
       })
       .sort({ date: -1 })
       .lean();
