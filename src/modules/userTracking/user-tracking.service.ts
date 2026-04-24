@@ -249,12 +249,8 @@ export class UserTrackingService {
 
           const prevTime = moment(prev.date);
           const currTime = moment(curr.date);
-          const diffMs = currTime.diff(prevTime);
+          const diffMs = Math.abs(currTime.diff(prevTime)); // becuse of list in reverse we convert diff in abs
           const isSameSession = prev.workDaySessionId === curr.workDaySessionId;
-
-          console.log("=> diffMs:", diffMs);
-          console.log("=> isSameSession:", isSameSession);
-          console.log("=> Condition: ", isSameSession && diffMs > IDLE_GAP_THRESHOLD_MS ? "✅": "❌");
 
           if (isSameSession && diffMs > IDLE_GAP_THRESHOLD_MS) {
             idletime.push({
