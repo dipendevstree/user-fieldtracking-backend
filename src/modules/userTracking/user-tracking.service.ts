@@ -241,23 +241,27 @@ export class UserTrackingService {
       const IDLE_GAP_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
       const idletime = [];
       const liveTrackingAllData = await this.findAll(tenantId, query);
-      console.log("liveTrackingAllData.length", liveTrackingAllData.length);
+      // Above function returns data in the reverse order so we are calculating idle time from end to start
       if (liveTrackingAllData?.length) {
         for (let i = 1; i < liveTrackingAllData.length; i++) {
-          const prev = liveTrackingAllData[i - 1];
-          const curr = liveTrackingAllData[i];
+          const curr = liveTrackingAllData[i - 1];
+          const prev = liveTrackingAllData[i];
 
-          const prevTime = moment(prev.date);
           const currTime = moment(curr.date);
-          const diffMs = Math.abs(currTime.diff(prevTime)); // becuse of list in reverse we convert diff in abs
-          const isSameSession = prev.workDaySessionId === curr.workDaySessionId;
+          const prevTime = moment(prev.date);
 
+          const diffMs = currTime.diff(prevTime);
+          const isSameSession = prev.workDaySessionId === curr.workDaySessionId;
+          console.log("diffMs", diffMs);
           if (isSameSession && diffMs > IDLE_GAP_THRESHOLD_MS) {
+            const [idleAtFullAddress, resumeAtFullAddress] = await Promise.all([
+              commonFunctions.getFullAddressByLatLong(prev.lat, prev.long),
+              commonFunctions.getFullAddressByLatLong(curr.lat, curr.long)
+            ]);
             idletime.push({
               type: "idle",
               startTime: prevTime.toDate().toISOString(),   // last seen point
               endTime: currTime.toDate().toISOString(),     // next point resumed
-              durationMs: diffMs,
               durationMin: Math.round(diffMs / 60000),
               // Location where employee went idle (last known position)
               lat: prev.lat,
@@ -267,6 +271,8 @@ export class UserTrackingService {
                 lat: curr.lat,
                 long: curr.long,
               },
+              idleAtFullAddress,
+              resumeAtFullAddress,
             });
           }
         }
