@@ -199,14 +199,14 @@ export class UserTrackingService {
       {
         "locationRawData.activity.type": { $ne: "still" },
         $or: [
-          { $expr: { $gt: [{ $toInt: { $toDouble: "$speed" } }, 0] } }, // handles speed stored as string
+          { $expr: { $gt: [{ $toDouble: "$speed" }, 0.5] } },
           { speed: "-1" } // explicitly include speed "-1"
         ]
       },
       // NEW: Include records that ARE still but have float speed > 0 (e.g. 0.25)
       {
         "locationRawData.activity.type": "still",
-        $expr: { $gt: [{ $toDouble: "$speed" }, 0] } // use toDouble (not toInt) to catch fractional speeds like 0.25
+        $expr: { $gt: [{ $toDouble: "$speed" }, 0.5] }
       }
     ];
     if (boundaryIds?.length > 0) {
@@ -230,10 +230,9 @@ export class UserTrackingService {
     const isNotStill = activityType !== "still";
     const isStill = activityType === "still";
 
-    const isSignificantMove = parseInt(location?.speed) > 0 || location?.speed === "-1";
-    const hasFractionalSpeed = parseFloat(location?.speed) > 0; // catches 0.25, 0.5, etc.
+    const isSignificantMove = parseFloat(location?.speed) > 0.5 || location?.speed === "-1";
+    const hasFractionalSpeed = parseFloat(location?.speed) > 0.5;
 
-    // (activitytype != still AND (int(float(speed)) > 0 OR speed = "-1")) OR (activitytype = still AND float(speed) > 0)
     return (isNotStill && isSignificantMove) || (isStill && hasFractionalSpeed);
   }
 }
