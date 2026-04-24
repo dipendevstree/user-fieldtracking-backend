@@ -112,7 +112,7 @@ export class UserTrackingService {
     let latestEntry = await model
       .findOne({
         ...whereCondition,
-        // ...this.filterCondition() // uncomment this if you want valid records only
+        ...this.filterCondition()
       })
       .sort({ date: -1 })
       .lean();
@@ -198,15 +198,7 @@ export class UserTrackingService {
       // Include records that are not still AND have significant speed
       {
         "locationRawData.activity.type": { $ne: "still" },
-        $or: [
-          { $expr: { $gt: [{ $toInt: { $toDouble: "$speed" } }, 0] } }, // handles speed stored as string
-          { speed: "-1" } // explicitly include speed "-1"
-        ]
-      },
-      // NEW: Include records that ARE still but have float speed > 0 (e.g. 0.25)
-      {
-        "locationRawData.activity.type": "still",
-        $expr: { $gt: [{ $toDouble: "$speed" }, 0] } // use toDouble (not toInt) to catch fractional speeds like 0.25
+        $expr: { $gt: [{ $toInt: { $toDouble: "$speed" } }, 0] }, // handles speed stored as string
       }
     ];
     if (boundaryIds?.length > 0) {
@@ -226,14 +218,9 @@ export class UserTrackingService {
 
     if (!ignoreFirstAndLast && (isFirst || isLast)) return true; // Always include first and last points
 
-    const activityType = location?.locationRawData?.activity?.type;
-    const isNotStill = activityType !== "still";
-    const isStill = activityType === "still";
+    const isNotStill = location?.locationRawData?.activity?.type !== "still";
+    const isSignificantMove = parseInt(location?.speed) > 0;
 
-    const isSignificantMove = parseInt(location?.speed) > 0 || location?.speed === "-1";
-    const hasFractionalSpeed = parseFloat(location?.speed) > 0; // catches 0.25, 0.5, etc.
-
-    // (activitytype != still AND (int(float(speed)) > 0 OR speed = "-1")) OR (activitytype = still AND float(speed) > 0)
-    return (isNotStill && isSignificantMove) || (isStill && hasFractionalSpeed);
+    return isNotStill && isSignificantMove; // Exclude still points and points with speed 0
   }
 }
