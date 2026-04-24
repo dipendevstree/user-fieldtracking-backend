@@ -235,4 +235,44 @@ export class UserTrackingService {
 
     return (isNotStill && isSignificantMove) || (isStill && hasFractionalSpeed);
   }
+
+  async findIdleTime(tenantId: string, query: any) {
+    try {
+      const IDLE_GAP_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
+      const idletime = [];
+      const liveTrackingAllData = await this.findAll(tenantId, query);
+      if (liveTrackingAllData?.length) {
+        for (let i = 1; i < liveTrackingAllData.length; i++) {
+          const prev = liveTrackingAllData[i - 1];
+          const curr = liveTrackingAllData[i];
+
+          const prevTime = moment(prev.date);
+          const currTime = moment(curr.date);
+          const diffMs = currTime.diff(prevTime);
+          const isSameSession = prev.workDaySessionId === curr.workDaySessionId;
+
+          if (isSameSession && diffMs > IDLE_GAP_THRESHOLD_MS) {
+            idletime.push({
+              type: "idle",
+              startTime: prevTime.toDate().toISOString(),   // last seen point
+              endTime: currTime.toDate().toISOString(),     // next point resumed
+              durationMs: diffMs,
+              durationMin: Math.round(diffMs / 60000),
+              // Location where employee went idle (last known position)
+              lat: prev.lat,
+              long: prev.long,
+              // Location where employee resumed
+              resumedAt: {
+                lat: curr.lat,
+                long: curr.long,
+              },
+            });
+          }
+        }
+      }
+      return idletime;
+    } catch (error) {
+      console.log("errrrrorrr", error);
+    }
+  }
 }
