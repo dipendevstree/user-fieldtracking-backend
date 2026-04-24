@@ -17,6 +17,7 @@ import { RolesGuard } from "src/modules/auth/role-auth-guard";
 import { commonResponse } from "helper";
 import { CreateMultipleUserTrackingDto } from "./dtos/create-multiple-user-tracking.dto";
 import moment from "moment-timezone";
+import { Request } from "express";
 @ApiTags("UserTracking")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -573,6 +574,48 @@ export class UserTrackingController {
     req.query["timeZone"] = req.user.timeZone;
     req.query["userId"] = userId;
     return this.userTrackingService.findAll(tenantId, req.query);
+  }
+
+  @Get("/idletime")
+  @ApiQuery({
+    name: "endDate",
+    required: false,
+    type: String,
+    example: "2026-04-24",
+    description: "End date",
+  })
+  @ApiQuery({
+    name: "startDate",
+    required: false,
+    type: String,
+    example: "2026-04-23",
+    description: "Start date",
+  })
+  @ApiQuery({
+    name: "workDaySessionId",
+    required: false,
+    type: String,
+    example: "uuid",
+    description: "Filer by workDaySessionId",
+  })
+  async findIdleTime(@Req() req: Request, @Res() res: Response) {
+    try {
+      const tenantId = req.user?.schemaName;
+      req.query["organizationId"] = req.user.organizationID;
+      req.query["timeZone"] = req.user.timeZone;
+      req.query["userId"] = req.user.id;
+      let result = await this.userTrackingService.findIdleTime(tenantId, req.query);
+      return commonResponse.success(
+        "en",
+        res,
+        "USER_TRACKING_IDLE_TIME_SUCCESS",
+        201,
+        result,
+      );
+    } catch (error) {
+      console.log("idle time controller error:", error);
+      throw error;
+    }
   }
 
   // @Delete()
