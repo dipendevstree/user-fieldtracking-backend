@@ -11,7 +11,7 @@ import {
 } from "@nestjs/common";
 import { UserTrackingService } from "./user-tracking.service";
 import { CreateUserTrackingDto } from "./dtos/create-user-tracking.dto";
-import { ApiTags, ApiBearerAuth, ApiQuery } from "@nestjs/swagger";
+import { ApiTags, ApiBearerAuth, ApiQuery, ApiParam } from "@nestjs/swagger";
 import { JwtAuthGuard } from "src/modules/auth/jwt-auth.guard";
 import { RolesGuard } from "src/modules/auth/role-auth-guard";
 import { commonResponse } from "helper";
@@ -576,7 +576,14 @@ export class UserTrackingController {
     return this.userTrackingService.findAll(tenantId, req.query);
   }
 
-  @Get("/idletime")
+  @Get("/idletime/:userId")
+  @ApiParam({
+    name: "userId",
+    required: true,
+    type: String,
+    example: "uuid",
+    description: "User ID",
+  })
   @ApiQuery({
     name: "endDate",
     required: false,
@@ -598,12 +605,12 @@ export class UserTrackingController {
     example: "uuid",
     description: "Filer by workDaySessionId",
   })
-  async findIdleTime(@Req() req: Request, @Res() res: Response) {
+  async findIdleTime(@Param("userId") userId: string, @Req() req: Request, @Res() res: Response) {
     try {
       const tenantId = req.user?.schemaName;
       req.query["organizationId"] = req.user.organizationID;
       req.query["timeZone"] = req.user.timeZone;
-      req.query["userId"] = req.user.id;
+      req.query["userId"] = userId;
       let result = await this.userTrackingService.findIdleTime(tenantId, req.query);
       return commonResponse.success(
         "en",
