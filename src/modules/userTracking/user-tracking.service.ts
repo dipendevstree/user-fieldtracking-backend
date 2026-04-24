@@ -241,6 +241,7 @@ export class UserTrackingService {
       const IDLE_GAP_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
       const idletime = [];
       const liveTrackingAllData = await this.findAll(tenantId, query);
+      console.log("liveTrackingAllData.length", liveTrackingAllData.length);
       if (liveTrackingAllData?.length) {
         for (let i = 1; i < liveTrackingAllData.length; i++) {
           const prev = liveTrackingAllData[i - 1];
@@ -250,6 +251,10 @@ export class UserTrackingService {
           const currTime = moment(curr.date);
           const diffMs = currTime.diff(prevTime);
           const isSameSession = prev.workDaySessionId === curr.workDaySessionId;
+
+          console.log("=> diffMs:", diffMs);
+          console.log("=> isSameSession:", isSameSession);
+          console.log("=> Condition: ", isSameSession && diffMs > IDLE_GAP_THRESHOLD_MS ? "✅": "❌");
 
           if (isSameSession && diffMs > IDLE_GAP_THRESHOLD_MS) {
             idletime.push({
