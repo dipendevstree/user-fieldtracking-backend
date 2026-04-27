@@ -93,7 +93,9 @@ export class UserTrackingService {
     const model = this.getModel(tenantId);
     const insertedRecords: any = await model.insertMany(dtos);
     // Run Redis and socket tasks in background
-    this.pushToRedis(insertedRecords, date);
+    this.pushToRedis(insertedRecords, date).catch((err) =>
+      console.error('Redis pushToRedis failed (non-critical):', err)
+    );
     return insertedRecords;
   }
 
@@ -252,7 +254,7 @@ export class UserTrackingService {
 
           const diffMs = currTime.diff(prevTime);
           const isSameSession = prev.workDaySessionId === curr.workDaySessionId;
-          console.log("diffMs", diffMs);
+
           if (isSameSession && diffMs > IDLE_GAP_THRESHOLD_MS) {
             const [idleAtFullAddress, resumeAtFullAddress] = await Promise.all([
               commonFunctions.getFullAddressByLatLong(prev.lat, prev.long),
