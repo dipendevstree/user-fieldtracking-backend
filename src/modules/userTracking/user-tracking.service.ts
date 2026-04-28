@@ -208,7 +208,10 @@ export class UserTrackingService {
       // NEW: Include records that ARE still but have float speed > 0 (e.g. 0.25)
       {
         "locationRawData.activity.type": "still",
-        $expr: { $gt: [{ $toDouble: "$speed" }, 0.5] }
+        $or: [
+          { $expr: { $gt: [{ $toDouble: "$speed" }, 0.5] } },
+          { speed: "-1" }
+        ]
       }
     ];
     if (boundaryIds?.length > 0) {
