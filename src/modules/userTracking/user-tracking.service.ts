@@ -202,11 +202,12 @@ export class UserTrackingService {
   filterCondition(boundaryIds?: Types.ObjectId[]) {
     // If this conditions changes then change in liveTrackingFilter function also
     const orWhere: RootFilterQuery<UserTracking>[] = [
-      // Speed <= 20 (upper cap) AND (speed >= 3 OR (still AND speed >= 2))
+      // Speed <= 25 (upper cap) AND (speed >= 15 OR (3 <= speed < 15) OR (still AND speed >= 2))
       {
-        "locationRawData.coords.speed": { $lte: 20 },
+        "locationRawData.coords.speed": { $lte: 25 },
         $or: [
-          { "locationRawData.coords.speed": { $gte: 3 } },
+          { "locationRawData.coords.speed": { $gte: 15 } },
+          { "locationRawData.coords.speed": { $gte: 3, $lt: 15 } },
           {
             $and: [
               { "locationRawData.activity.type": "still" },
@@ -238,11 +239,14 @@ export class UserTrackingService {
 
     if (speed == null) return false;
 
-    // Speed must be <= 20 (upper cap to filter GPS jumps)
-    if (speed > 20) return false;
+    // Speed must be <= 25 (upper cap to filter GPS jumps)
+    if (speed > 25) return false;
 
-    // Include if speed >= 3 (significant movement)
-    if (speed >= 3) return true;
+    // Include if speed >= 15 (high speed movement)
+    if (speed >= 15) return true;
+
+    // Include if speed >= 3 and < 15 (moderate movement)
+    if (speed >= 3 && speed < 15) return true;
 
     // Include if activity is "still" AND speed >= 2
     if (activityType === "still" && speed >= 2) return true;
