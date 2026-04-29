@@ -202,22 +202,18 @@ export class UserTrackingService {
   filterCondition(boundaryIds?: Types.ObjectId[]) {
     // If this conditions changes then change in liveTrackingFilter function also
     const orWhere: RootFilterQuery<UserTracking>[] = [
-      // Include records that are not still AND have significant speed
+      // Speed <= 20 (upper cap) AND (speed >= 3 OR (still AND speed >= 2))
       {
-        "locationRawData.activity.type": { $ne: "still" },
+        "locationRawData.coords.speed": { $lte: 20 },
         $or: [
-          { $expr: { $gt: [{ $toDouble: "$speed" }, 0.5] } },
-          { speed: "-1" } // explicitly include speed "-1"
+          { "locationRawData.coords.speed": { $gte: 3 } },
+          {
+            $and: [
+              { "locationRawData.activity.type": "still" },
+              { "locationRawData.coords.speed": { $gte: 2 } }
+            ]
+          }
         ]
-      },
-      // NEW: Include records that ARE still but have float speed > 0 (e.g. 0.25)
-      {
-        "locationRawData.activity.type": "still",
-        $expr: { $gt: [{ $toDouble: "$speed" }, 0.5] }
-      },
-      {
-        "locationRawData.activity.type": "still",
-        $expr: { $eq: [{ $toDouble: "$speed" }, -1] }
       }
     ];
     if (boundaryIds?.length > 0) {
@@ -237,14 +233,20 @@ export class UserTrackingService {
 
     if (!ignoreFirstAndLast && (isFirst || isLast)) return true; // Always include first and last points
 
+    const speed = location?.locationRawData?.coords?.speed;
     const activityType = location?.locationRawData?.activity?.type;
-    const isNotStill = activityType !== "still";
-    const isStill = activityType === "still";
 
-    const isSignificantMove = parseFloat(location?.speed) > 0.5 || location?.speed === "-1";
-    const hasFractionalSpeed = parseFloat(location?.speed) > 0.5;
-    const isNegativeOne = parseFloat(location?.speed) === -1;
+    if (speed == null) return false;
 
-    return (isNotStill && isSignificantMove) || (isStill && hasFractionalSpeed) || (isStill && isNegativeOne);
+    // Speed must be <= 20 (upper cap to filter GPS jumps)
+    if (speed > 20) return false;
+
+    // Include if speed >= 3 (significant movement)
+    if (speed >= 3) return true;
+
+    // Include if activity is "still" AND speed >= 2
+    if (activityType === "still" && speed >= 2) return true;
+
+    return false;
   }
 }
