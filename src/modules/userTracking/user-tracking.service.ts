@@ -10,6 +10,7 @@ import { commonFunctions } from "helper";
 import moment from "moment-timezone";
 import { RedisService } from "../redis/redis.service";
 import { SocketGateway } from "../socket/socket.gateway";
+import { APPLY_TRACKING_FILTER } from "helper/constants";
 
 @Injectable()
 export class UserTrackingService {
@@ -42,13 +43,16 @@ export class UserTrackingService {
       this.socketGateway.emitLiveLocation(firstUserTrackingData);
     } else {
       // ignoreFirstAndLast = true → skips the isFirst/isLast check, only applies activity+speed filter
-      // if (this.liveTrackingFilter(firstUserTrackingData, 0, [firstUserTrackingData], true)) {
+      if (!APPLY_TRACKING_FILTER || this.liveTrackingFilter(firstUserTrackingData, 0, [firstUserTrackingData], true)) {
         this.socketGateway.emitLiveLocation(firstUserTrackingData);
-      // }
+      }
     }
-    // filters other records and emit
-    await this.emitLocationWithFiltersInRedis(otherData, redisKey);
-    await this.redisService.expire(redisKey, 86400); // 1 day = 86400 seconds
+
+    if (otherData.length > 0) {
+      // filters other records and emit
+      await this.emitLocationWithFiltersInRedis(otherData, redisKey);
+      await this.redisService.expire(redisKey, 86400); // 1 day = 86400 seconds
+    }
   }
 
   private async emitLocationWithFiltersInRedis(data: any, redisKey: string) {
@@ -58,7 +62,9 @@ export class UserTrackingService {
       await this.redisService.lpush(redisKey, record);
     }
     // filters other records and to be emitted
-    // redisData = redisData.filter((record, index) => this.liveTrackingFilter(record, index, redisData, true));
+    if (APPLY_TRACKING_FILTER) {
+      redisData = redisData.filter((record, index) => this.liveTrackingFilter(record, index, redisData, true));
+    }
     if (redisData.length > 0) {
       for (const record of redisData) {
         this.socketGateway.emitLiveLocation(record);
@@ -114,7 +120,7 @@ export class UserTrackingService {
     let latestEntry = await model
       .findOne({
         ...whereCondition,
-        // ...this.filterCondition() // uncomment this if you want valid records only
+        // ...(APPLY_TRACKING_FILTER ? this.filterCondition() : {}) // uncomment this if you want valid records only
       })
       .sort({ date: -1 })
       .lean();
@@ -151,7 +157,8 @@ export class UserTrackingService {
       if (redisKey && startDate) {
         const redisData = await this.redisService.lrange(redisKey, 0, -1);
         if (redisData?.length) {
-          return redisData;//.filter((record, index) => this.liveTrackingFilter(record, index, redisData));
+          if (!APPLY_TRACKING_FILTER) return redisData;
+          return redisData.filter((record, index) => this.liveTrackingFilter(record, index, redisData));
           // If the frontend remove reverse then add (uncomment below line) reverse function in this redisData.filter also as well as from DB also
           // return redisData.reverse();
         }
@@ -172,13 +179,13 @@ export class UserTrackingService {
       }
 
       // Fetch first and last record
-      // const firstRecord = await model.findOne(whereCondition).sort({ date: 1 }).select("_id");
-      // const lastRecord = await model.findOne(whereCondition).sort({ date: -1 }).select("_id");
+      const firstRecord = APPLY_TRACKING_FILTER && await model.findOne(whereCondition).sort({ date: 1 }).select("_id");
+      const lastRecord = APPLY_TRACKING_FILTER && await model.findOne(whereCondition).sort({ date: -1 }).select("_id");
 
       // Fetch all records sorted ASC to identify first and last points
       const allRecords = await model.find({
         ...whereCondition,
-        // ...this.filterCondition([firstRecord?._id, lastRecord?._id].filter(Boolean))
+        ...(APPLY_TRACKING_FILTER ? this.filterCondition([firstRecord?._id, lastRecord?._id].filter(Boolean)) : {})
       }).sort({ date: 1 });
 
       // Placeholder - you can store the calculated data in redis as per {redisKey} filtered date. so in future db call could be avoid.
@@ -190,11 +197,6 @@ export class UserTrackingService {
       console.log("errrrrorrr", error);
     }
   }
-
-  // async deleteAll(tenantId: string): Promise<{ deletedCount?: number }> {
-  //   const model = this.getModel(tenantId);
-  //   return await model.deleteMany({});
-  // }
 
   // condition for filter lat long DB level
   filterCondition(boundaryIds?: Types.ObjectId[]) {
@@ -244,52 +246,5 @@ export class UserTrackingService {
     const isNegativeOne = parseFloat(location?.speed) === -1;
 
     return (isNotStill && isSignificantMove) || (isStill && hasFractionalSpeed) || (isStill && isNegativeOne);
-  }
-
-  async findIdleTime(tenantId: string, query: any) {
-    try {
-      const IDLE_GAP_THRESHOLD_MS = 5 * 60 * 1000; // 5 minutes
-      const idletime = [];
-      const liveTrackingAllData = await this.findAll(tenantId, query);
-      // Above function returns data in the reverse order so we are calculating idle time from end to start
-      if (liveTrackingAllData?.length) {
-        for (let i = 1; i < liveTrackingAllData.length; i++) {
-          const curr = liveTrackingAllData[i - 1];
-          const prev = liveTrackingAllData[i];
-
-          const currTime = moment(curr.date);
-          const prevTime = moment(prev.date);
-
-          const diffMs = currTime.diff(prevTime);
-          const isSameSession = prev.workDaySessionId === curr.workDaySessionId;
-
-          if (isSameSession && diffMs > IDLE_GAP_THRESHOLD_MS) {
-            const [idleAtFullAddress, resumeAtFullAddress] = await Promise.all([
-              commonFunctions.getFullAddressByLatLong(prev.lat, prev.long),
-              commonFunctions.getFullAddressByLatLong(curr.lat, curr.long)
-            ]);
-            idletime.push({
-              type: "idle",
-              startTime: prevTime.toDate().toISOString(),   // last seen point
-              endTime: currTime.toDate().toISOString(),     // next point resumed
-              durationMin: Math.round(diffMs / 60000),
-              // Location where employee went idle (last known position)
-              lat: prev.lat,
-              long: prev.long,
-              // Location where employee resumed
-              resumedAt: {
-                lat: curr.lat,
-                long: curr.long,
-              },
-              idleAtFullAddress,
-              resumeAtFullAddress,
-            });
-          }
-        }
-      }
-      return idletime;
-    } catch (error) {
-      console.log("errrrrorrr", error);
-    }
   }
 }
