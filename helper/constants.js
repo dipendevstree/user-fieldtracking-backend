@@ -40,3 +40,4 @@ exports.VISIT_STATUS = {
   CANCEL: "cancel",
   PARTIAL_COMPLETED: "partial_completed",
 };
+exports.APPLY_TRACKING_FILTER = true;
