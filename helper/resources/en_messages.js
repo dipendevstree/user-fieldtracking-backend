@@ -447,5 +447,7 @@ exports.en = {
   USER_SUBSCRIPTION_SUCESS: "User's subscription success.",
   INVOICE_FETCH: "Your invoice fetch successfully.",
   INVOICE_URL_NOT_FETCH: "Invoice url is not available.",
+
+  USER_TRACKING_IDLE_TIME_SUCCESS: "User's idle time fetch successfully.",
 };
 //# sourceMappingURL=en_messages.js.map

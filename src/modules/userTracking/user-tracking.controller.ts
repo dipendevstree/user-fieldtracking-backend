@@ -11,12 +11,13 @@ import {
 } from "@nestjs/common";
 import { UserTrackingService } from "./user-tracking.service";
 import { CreateUserTrackingDto } from "./dtos/create-user-tracking.dto";
-import { ApiTags, ApiBearerAuth, ApiQuery } from "@nestjs/swagger";
+import { ApiTags, ApiBearerAuth, ApiQuery, ApiParam } from "@nestjs/swagger";
 import { JwtAuthGuard } from "src/modules/auth/jwt-auth.guard";
 import { RolesGuard } from "src/modules/auth/role-auth-guard";
 import { commonResponse } from "helper";
 import { CreateMultipleUserTrackingDto } from "./dtos/create-multiple-user-tracking.dto";
 import moment from "moment-timezone";
+import { Request } from "express";
 @ApiTags("UserTracking")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -574,10 +575,4 @@ export class UserTrackingController {
     req.query["userId"] = userId;
     return this.userTrackingService.findAll(tenantId, req.query);
   }
-
-  // @Delete()
-  // async deleteAll(@Req() req) {
-  //   const tenantId = req.user?.schemaName;
-  //   return this.userTrackingService.deleteAll(tenantId);
-  // }
 }

@@ -37,3 +37,4 @@ export declare const VEHICLE_TYPE: {
   PRIVATE: string;
   PUBLIC: string;
 };
+export declare const APPLY_TRACKING_FILTER: boolean;

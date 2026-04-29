@@ -10,6 +10,7 @@ import { commonFunctions } from "helper";
 import moment from "moment-timezone";
 import { RedisService } from "../redis/redis.service";
 import { SocketGateway } from "../socket/socket.gateway";
+import { APPLY_TRACKING_FILTER } from "helper/constants";
 
 @Injectable()
 export class UserTrackingService {
@@ -42,13 +43,16 @@ export class UserTrackingService {
       this.socketGateway.emitLiveLocation(firstUserTrackingData);
     } else {
       // ignoreFirstAndLast = true → skips the isFirst/isLast check, only applies activity+speed filter
-      if (this.liveTrackingFilter(firstUserTrackingData, 0, [firstUserTrackingData], true)) {
+      if (!APPLY_TRACKING_FILTER || this.liveTrackingFilter(firstUserTrackingData, 0, [firstUserTrackingData], true)) {
         this.socketGateway.emitLiveLocation(firstUserTrackingData);
       }
     }
-    // filters other records and emit
-    await this.emitLocationWithFiltersInRedis(otherData, redisKey);
-    await this.redisService.expire(redisKey, 86400); // 1 day = 86400 seconds
+
+    if (otherData.length > 0) {
+      // filters other records and emit
+      await this.emitLocationWithFiltersInRedis(otherData, redisKey);
+      await this.redisService.expire(redisKey, 86400); // 1 day = 86400 seconds
+    }
   }
 
   private async emitLocationWithFiltersInRedis(data: any, redisKey: string) {
@@ -58,7 +62,9 @@ export class UserTrackingService {
       await this.redisService.lpush(redisKey, record);
     }
     // filters other records and to be emitted
-    redisData = redisData.filter((record, index) => this.liveTrackingFilter(record, index, redisData, true));
+    if (APPLY_TRACKING_FILTER) {
+      redisData = redisData.filter((record, index) => this.liveTrackingFilter(record, index, redisData, true));
+    }
     if (redisData.length > 0) {
       for (const record of redisData) {
         this.socketGateway.emitLiveLocation(record);
@@ -93,7 +99,9 @@ export class UserTrackingService {
     const model = this.getModel(tenantId);
     const insertedRecords: any = await model.insertMany(dtos);
     // Run Redis and socket tasks in background
-    this.pushToRedis(insertedRecords, date);
+    this.pushToRedis(insertedRecords, date).catch((err) =>
+      console.error('Redis pushToRedis failed (non-critical):', err)
+    );
     return insertedRecords;
   }
 
@@ -112,7 +120,7 @@ export class UserTrackingService {
     let latestEntry = await model
       .findOne({
         ...whereCondition,
-        ...this.filterCondition()
+        // ...(APPLY_TRACKING_FILTER ? this.filterCondition() : {}) // uncomment this if you want valid records only
       })
       .sort({ date: -1 })
       .lean();
@@ -149,6 +157,7 @@ export class UserTrackingService {
       if (redisKey && startDate) {
         const redisData = await this.redisService.lrange(redisKey, 0, -1);
         if (redisData?.length) {
+          if (!APPLY_TRACKING_FILTER) return redisData;
           return redisData.filter((record, index) => this.liveTrackingFilter(record, index, redisData));
           // If the frontend remove reverse then add (uncomment below line) reverse function in this redisData.filter also as well as from DB also
           // return redisData.reverse();
@@ -170,14 +179,17 @@ export class UserTrackingService {
       }
 
       // Fetch first and last record
-      const firstRecord = await model.findOne(whereCondition).sort({ date: 1 }).select("_id");
-      const lastRecord = await model.findOne(whereCondition).sort({ date: -1 }).select("_id");
+      const firstRecord = APPLY_TRACKING_FILTER && await model.findOne(whereCondition).sort({ date: 1 }).select("_id");
+      const lastRecord = APPLY_TRACKING_FILTER && await model.findOne(whereCondition).sort({ date: -1 }).select("_id");
 
       // Fetch all records sorted ASC to identify first and last points
       const allRecords = await model.find({
         ...whereCondition,
-        ...this.filterCondition([firstRecord?._id, lastRecord?._id].filter(Boolean))
+        ...(APPLY_TRACKING_FILTER ? this.filterCondition([firstRecord?._id, lastRecord?._id].filter(Boolean)) : {})
       }).sort({ date: 1 });
+
+      // Placeholder - you can store the calculated data in redis as per {redisKey} filtered date. so in future db call could be avoid.
+      // Placeholder - end.
 
       // If the frontend remove reverse then remove this reverse as well as from redis also
       return allRecords.reverse();
@@ -186,19 +198,23 @@ export class UserTrackingService {
     }
   }
 
-  async deleteAll(tenantId: string): Promise<{ deletedCount?: number }> {
-    const model = this.getModel(tenantId);
-    return await model.deleteMany({});
-  }
-
   // condition for filter lat long DB level
   filterCondition(boundaryIds?: Types.ObjectId[]) {
     // If this conditions changes then change in liveTrackingFilter function also
     const orWhere: RootFilterQuery<UserTracking>[] = [
-      // Include records that are not still AND have significant speed
+      // Speed <= 25 (upper cap) AND (speed >= 15 OR (3 <= speed < 15) OR (still AND speed >= 2))
       {
-        "locationRawData.activity.type": { $ne: "still" },
-        $expr: { $gt: [{ $toInt: { $toDouble: "$speed" } }, 0] }, // handles speed stored as string
+        "locationRawData.coords.speed": { $lte: 25 },
+        $or: [
+          { "locationRawData.coords.speed": { $gte: 15 } },
+          { "locationRawData.coords.speed": { $gte: 3, $lt: 15 } },
+          {
+            $and: [
+              { "locationRawData.activity.type": "still" },
+              { "locationRawData.coords.speed": { $gte: 2 } }
+            ]
+          }
+        ]
       }
     ];
     if (boundaryIds?.length > 0) {
@@ -218,9 +234,23 @@ export class UserTrackingService {
 
     if (!ignoreFirstAndLast && (isFirst || isLast)) return true; // Always include first and last points
 
-    const isNotStill = location?.locationRawData?.activity?.type !== "still";
-    const isSignificantMove = parseInt(location?.speed) > 0;
+    const speed = location?.locationRawData?.coords?.speed;
+    const activityType = location?.locationRawData?.activity?.type;
 
-    return isNotStill && isSignificantMove; // Exclude still points and points with speed 0
+    if (speed == null) return false;
+
+    // Speed must be <= 25 (upper cap to filter GPS jumps)
+    if (speed > 25) return false;
+
+    // Include if speed >= 15 (high speed movement)
+    if (speed >= 15) return true;
+
+    // Include if speed >= 3 and < 15 (moderate movement)
+    if (speed >= 3 && speed < 15) return true;
+
+    // Include if activity is "still" AND speed >= 2
+    if (activityType === "still" && speed >= 2) return true;
+
+    return false;
   }
 }
