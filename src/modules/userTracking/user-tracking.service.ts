@@ -42,9 +42,9 @@ export class UserTrackingService {
       this.socketGateway.emitLiveLocation(firstUserTrackingData);
     } else {
       // ignoreFirstAndLast = true → skips the isFirst/isLast check, only applies activity+speed filter
-      if (this.liveTrackingFilter(firstUserTrackingData, 0, [firstUserTrackingData], true)) {
+      // if (this.liveTrackingFilter(firstUserTrackingData, 0, [firstUserTrackingData], true)) {
         this.socketGateway.emitLiveLocation(firstUserTrackingData);
-      }
+      // }
     }
     // filters other records and emit
     await this.emitLocationWithFiltersInRedis(otherData, redisKey);
@@ -58,7 +58,7 @@ export class UserTrackingService {
       await this.redisService.lpush(redisKey, record);
     }
     // filters other records and to be emitted
-    redisData = redisData.filter((record, index) => this.liveTrackingFilter(record, index, redisData, true));
+    // redisData = redisData.filter((record, index) => this.liveTrackingFilter(record, index, redisData, true));
     if (redisData.length > 0) {
       for (const record of redisData) {
         this.socketGateway.emitLiveLocation(record);
@@ -151,7 +151,7 @@ export class UserTrackingService {
       if (redisKey && startDate) {
         const redisData = await this.redisService.lrange(redisKey, 0, -1);
         if (redisData?.length) {
-          return redisData.filter((record, index) => this.liveTrackingFilter(record, index, redisData));
+          return redisData;//.filter((record, index) => this.liveTrackingFilter(record, index, redisData));
           // If the frontend remove reverse then add (uncomment below line) reverse function in this redisData.filter also as well as from DB also
           // return redisData.reverse();
         }
@@ -172,14 +172,17 @@ export class UserTrackingService {
       }
 
       // Fetch first and last record
-      const firstRecord = await model.findOne(whereCondition).sort({ date: 1 }).select("_id");
-      const lastRecord = await model.findOne(whereCondition).sort({ date: -1 }).select("_id");
+      // const firstRecord = await model.findOne(whereCondition).sort({ date: 1 }).select("_id");
+      // const lastRecord = await model.findOne(whereCondition).sort({ date: -1 }).select("_id");
 
       // Fetch all records sorted ASC to identify first and last points
       const allRecords = await model.find({
         ...whereCondition,
-        ...this.filterCondition([firstRecord?._id, lastRecord?._id].filter(Boolean))
+        // ...this.filterCondition([firstRecord?._id, lastRecord?._id].filter(Boolean))
       }).sort({ date: 1 });
+
+      // Placeholder - you can store the calculated data in redis as per {redisKey} filtered date. so in future db call could be avoid.
+      // Placeholder - end.
 
       // If the frontend remove reverse then remove this reverse as well as from redis also
       return allRecords.reverse();
@@ -188,10 +191,10 @@ export class UserTrackingService {
     }
   }
 
-  async deleteAll(tenantId: string): Promise<{ deletedCount?: number }> {
-    const model = this.getModel(tenantId);
-    return await model.deleteMany({});
-  }
+  // async deleteAll(tenantId: string): Promise<{ deletedCount?: number }> {
+  //   const model = this.getModel(tenantId);
+  //   return await model.deleteMany({});
+  // }
 
   // condition for filter lat long DB level
   filterCondition(boundaryIds?: Types.ObjectId[]) {
